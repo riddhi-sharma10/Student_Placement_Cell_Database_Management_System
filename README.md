@@ -1,0 +1,2 @@
+# Student_Placement_Cell_Database_Management_System
+Placement Cell Management System that manages students, companies, job profiles, applications, interviews, and offers while generating placement statistics and ATS resume scoring using MySQL with joins, views, and procedures. An ongoing full-stack project with a structured frontend, backend, and dashboard to retrieve and visualize placement data.
