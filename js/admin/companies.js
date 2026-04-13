@@ -30,7 +30,7 @@ export function render(container, app) {
                             <td><span class="tag tag-warning">Dream</span></td>
                             <td>4</td>
                             <td>156</td>
-                            <td><button class="btn-primary" style="padding: 6px 12px; font-size: 0.7rem;">Details</button></td>
+                            <td><button class="btn-primary" style="padding: 6px 12px; font-size: 0.7rem;" onclick="window.App.navigateTo('company_view')">Details</button></td>
                         </tr>
                         <tr>
                             <td><b>J.P. Morgan</b></td>
