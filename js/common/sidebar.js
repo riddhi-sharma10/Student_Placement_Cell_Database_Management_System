@@ -10,6 +10,7 @@ export const Sidebar = {
                 { id: 'profile', label: 'My Profile', icon: 'person-outline' },
                 { id: 'opportunities', label: 'Opportunities', icon: 'briefcase-outline' },
                 { id: 'applications', label: 'Applications', icon: 'document-text-outline' },
+                { id: 'history', label: 'Archives', icon: 'time-outline' },
                 { id: 'ats', label: 'ATS Performance', icon: 'analytics-outline' },
             ],
             coordinator: [
