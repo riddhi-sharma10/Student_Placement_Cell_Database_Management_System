@@ -1,0 +1,25 @@
+{
+  "name": "student_placement_cell_database_management_system",
+  "version": "1.0.0",
+  "description": "A Placement Cell Management System that manages students, companies, job profiles, applications, interviews, and offers while generating placement statistics, ATS resume scoring, and analytics using MySQL with dynamic queries, joins, views, and stored procedures. This is an ongoing project where we are building a full-stack solution with a proper frontend, backend, and interactive dashboard to efficiently retrieve, visualize, and manage placement data.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/riddhi-sharma10/Student_Placement_Cell_Database_Management_System.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/riddhi-sharma10/Student_Placement_Cell_Database_Management_System/issues"
+  },
+  "homepage": "https://github.com/riddhi-sharma10/Student_Placement_Cell_Database_Management_System#readme",
+  "devDependencies": {
+    "vite": "^8.0.8"
+  }
+}
