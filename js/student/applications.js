@@ -1,5 +1,15 @@
 // js/student/applications.js
 
+const applicationsData = [
+    { company: "Global Tech Solutions", role: "Software Engineer II", date: "Oct 12, 2024", score: 88, status: "Selected" },
+    { company: "Nexus Analytics", role: "Data Scientist", date: "Oct 08, 2024", score: 92, status: "Interviewing" },
+    { company: "FinBridge Systems", role: "Backend Developer", date: "Oct 05, 2024", score: 75, status: "Closed" },
+    { company: "CloudScale AI", role: "DevOps Intern", date: "Sep 28, 2024", score: 65, status: "Rejected" },
+    { company: "Amazon", role: "SDE Intern", date: "Sep 20, 2024", score: 94, status: "Shortlisted" },
+    { company: "Meta", role: "Frontend Dev", date: "Sep 15, 2024", score: 91, status: "Applied" },
+    { company: "Microsoft", role: "Software Engineer", date: "Sep 10, 2024", score: 85, status: "Interviewing" },
+];
+
 export function render(container, app) {
     container.innerHTML = `
         <div class="dashboard-header" style="margin-bottom: 32px;">
@@ -8,12 +18,12 @@ export function render(container, app) {
         </div>
 
         <div class="card" style="margin-bottom: 24px; padding: 12px;">
-            <div style="display: flex; gap: 8px;">
-                <button class="role-option active" style="padding: 8px 16px; width: auto;">All Applications</button>
-                <button class="role-option" style="padding: 8px 16px; width: auto;">Applied</button>
-                <button class="role-option" style="padding: 8px 16px; width: auto;">Shortlisted</button>
-                <button class="role-option" style="padding: 8px 16px; width: auto;">Selected</button>
-                <button class="role-option" style="padding: 8px 16px; width: auto;">Rejected</button>
+            <div style="display: flex; gap: 8px;" id="filter-buttons">
+                <button class="role-option active" data-filter="all" style="padding: 8px 16px; width: auto;">All Applications</button>
+                <button class="role-option" data-filter="Applied" style="padding: 8px 16px; width: auto;">Applied</button>
+                <button class="role-option" data-filter="Shortlisted" style="padding: 8px 16px; width: auto;">Shortlisted</button>
+                <button class="role-option" data-filter="Selected" style="padding: 8px 16px; width: auto;">Selected</button>
+                <button class="role-option" data-filter="Rejected" style="padding: 8px 16px; width: auto;">Rejected</button>
             </div>
         </div>
 
@@ -30,17 +40,35 @@ export function render(container, app) {
                             <th>Action</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        ${renderAppRow("Global Tech Solutions", "Software Engineer II", "Oct 12, 2024", 88, "Selected")}
-                        ${renderAppRow("Nexus Analytics", "Data Scientist", "Oct 08, 2024", 92, "Interviewing")}
-                        ${renderAppRow("FinBridge Systems", "Backend Developer", "Oct 05, 2024", 75, "Closed")}
-                        ${renderAppRow("CloudScale AI", "DevOps Intern", "Sep 28, 2024", 65, "Rejected")}
-                        ${renderAppRow("Amazon", "SDE Intern", "Sep 20, 2024", 94, "Shortlisted")}
+                    <tbody id="applications-tbody">
+                        <!-- Rows injected here -->
                     </tbody>
                 </table>
             </div>
         </div>
     `;
+
+    const tbody = document.getElementById('applications-tbody');
+    const filterButtons = document.querySelectorAll('#filter-buttons .role-option');
+
+    const updateTable = (filter) => {
+        const filteredData = filter === 'all' 
+            ? applicationsData 
+            : applicationsData.filter(item => item.status === filter);
+        
+        tbody.innerHTML = filteredData.map(item => renderAppRow(item.company, item.role, item.date, item.score, item.status)).join('');
+    };
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            filterButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateTable(btn.dataset.filter);
+        });
+    });
+
+    // Initial render
+    updateTable('all');
 }
 
 function renderAppRow(company, role, date, score, status) {
@@ -49,7 +77,8 @@ function renderAppRow(company, role, date, score, status) {
         'Interviewing': 'tag-warning',
         'Shortlisted': 'tag-info',
         'Rejected': 'tag-danger',
-        'Closed': 'tag-danger'
+        'Closed': 'tag-danger',
+        'Applied': 'tag-info'
     };
 
     return `

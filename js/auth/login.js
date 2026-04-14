@@ -6,8 +6,9 @@ export function initLogin(app) {
         <div class="login-card">
             <div class="login-header">
                 <ion-icon name="school" style="font-size: 3rem; color: var(--primary);"></ion-icon>
-                <h1>Placement Portal</h1>
-                <p style="color: var(--text-muted);">Career Success & Institutional Excellence</p>
+                <h1 style="margin-top: 10px; font-size: 2.2rem; line-height: 1;">PORTALX</h1>
+                <p style="font-size: 0.7rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; margin-top: 5px;">Academic Prestige</p>
+                <p style="color: var(--text-muted); margin-top: 20px; font-size: 0.9rem;">Career Success & Institutional Excellence</p>
             </div>
 
             <div class="role-selector">

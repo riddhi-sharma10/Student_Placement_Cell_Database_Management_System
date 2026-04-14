@@ -34,7 +34,10 @@ export const Sidebar = {
 
         sidebar.innerHTML = `
             <div class="sidebar-header">
-                <div class="brand">PLACEMINT</div>
+                <div>
+                    <div class="brand">PORTALX</div>
+                    <div class="brand-subtext">ACADEMIC PRESTIGE</div>
+                </div>
             </div>
             <div class="sidebar-nav">
                 <div class="nav-group">

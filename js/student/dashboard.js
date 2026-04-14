@@ -8,41 +8,33 @@ export function render(container, app) {
         </div>
 
         <div class="stats-grid">
-            <div class="card stat-card">
-                <div class="stat-icon" style="background: #e0f2fe; color: #0369a1;">
-                    <ion-icon name="send-outline"></ion-icon>
-                </div>
-                <div class="stat-info">
-                    <h3>Total Applications</h3>
-                    <div class="value">24</div>
-                    <span style="font-size: 0.75rem; color: var(--success);">+4 this week</span>
+            <!-- Total Applications -->
+            <div class="card stat-card-alt">
+                <label>Total Applications</label>
+                <div class="value">24</div>
+                <div class="trend success">
+                    <ion-icon name="trending-up-outline"></ion-icon>
+                    <span>4 new this week</span>
                 </div>
             </div>
-            <div class="card stat-card">
-                <div class="stat-icon" style="background: #fef9c3; color: #a16207;">
+
+            <!-- Interviews Scheduled -->
+            <div class="card stat-card-alt">
+                <label>Interviews Scheduled</label>
+                <div class="value">03</div>
+                <div class="trend primary">
                     <ion-icon name="calendar-outline"></ion-icon>
-                </div>
-                <div class="stat-info">
-                    <h3>Interviews</h3>
-                    <div class="value">03</div>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">Next: Tomorrow at 10 AM</span>
+                    <span>Next: tomorrow at 10 AM</span>
                 </div>
             </div>
-            <div class="card stat-card">
-                <div class="stat-icon" style="background: #dcfce7; color: #15803d;">
-                    <ion-icon name="ribbon-outline"></ion-icon>
-                </div>
-                <div class="stat-info">
-                    <h3>Offers Received</h3>
-                    <div class="value">02</div>
-                    <span style="font-size: 0.75rem; color: var(--success);">Top 5% of batch</span>
-                </div>
-            </div>
-            <div class="card stat-card" style="background: var(--primary); color: white;">
-                <div class="stat-info">
-                    <h3 style="color: rgba(255,255,255,0.7);">Placement Status</h3>
-                    <div class="value" style="color: white;">PLACED</div>
-                    <div class="tag tag-accent" style="margin-top: 8px; display: inline-block;">Global Tech Solutions</div>
+
+            <!-- Offers Received -->
+            <div class="card stat-card-alt">
+                <label>Offers Received</label>
+                <div class="value">02</div>
+                <div class="trend warning">
+                    <ion-icon name="star"></ion-icon>
+                    <span>Top 5% of batch</span>
                 </div>
             </div>
         </div>
@@ -51,7 +43,7 @@ export function render(container, app) {
             <div class="card">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h2 style="font-size: 1.25rem;">Recent Applications</h2>
-                    <button class="btn-primary" style="padding: 6px 16px; font-size: 0.8rem;">View All</button>
+                    <button class="btn-primary" style="padding: 6px 16px; font-size: 0.8rem;" onclick="window.App.navigateTo('applications')">View All</button>
                 </div>
                 <div class="data-table-container">
                     <table>
