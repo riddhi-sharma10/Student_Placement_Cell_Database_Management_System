@@ -1,114 +1,299 @@
-// js/common/messages.js
+// js/coordinator/messages.js — PAGE 6: MESSAGES
+
+import { students, adminContact, mockChats as baseMockChats } from "./data.js";
+
+// Work on a mutable deep copy of chats
+const chats = {};
+Object.keys(baseMockChats).forEach((k) => {
+  chats[k] = baseMockChats[k].map((m) => ({ ...m }));
+});
+
+let selectedId = "admin";
+let searchContacts = "";
 
 export function render(container, app) {
-    let messages = [
-        { side: "left", text: "Hello! Please upload your verified marksheet to the portal." },
-        { side: "right", text: "Sure sir, I will do it by tonight." },
-        { side: "left", text: "Great. The deadline is tomorrow morning." }
-    ];
-
-    const renderTemplate = () => {
-        container.innerHTML = `
-            <div class="dashboard-header" style="margin-bottom: 32px;">
-                <h1 style="font-size: 2rem; color: var(--primary);">Messages</h1>
-                <p style="color: var(--text-muted);">Direct communication with the Training & Placement Office.</p>
-            </div>
-
-            <div style="display: grid; grid-template-columns: 320px 1fr; gap: 24px; height: calc(100vh - 240px);">
-                <!-- Left Sidebar: Only TPO -->
-                <div class="card" style="display: flex; flex-direction: column; padding: 0;">
-                    <div style="padding: 20px; border-bottom: 1px solid var(--border);">
-                        <div class="input-with-icon" style="background: var(--bg-light);">
-                            <ion-icon name="search-outline"></ion-icon>
-                            <input type="text" placeholder="Search chats...">
-                        </div>
-                    </div>
-                    <div style="flex: 1; overflow-y: auto;">
-                        <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); cursor: pointer; background: #f0f7ff;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <h4 style="font-size: 0.9rem;">TPO Coordinator</h4>
-                                <span style="font-size: 0.7rem; color: var(--text-muted);">Active</span>
-                            </div>
-                            <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Please submit your documents...</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Right Chat Window -->
-                <div class="card" style="display: flex; flex-direction: column; padding: 0;">
-                    <!-- Chat Header -->
-                    <div style="padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px;">
-                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=coordinator" style="width: 40px; height: 40px; border-radius: 50%;">
-                        <div>
-                            <h4 style="font-size: 1rem;">TPO Coordinator</h4>
-                            <span style="font-size: 0.75rem; color: var(--success); font-weight: 600;">Online</span>
-                        </div>
-                    </div>
-
-                    <!-- Message Feed -->
-                    <div id="chat-feed" style="flex: 1; padding: 24px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 16px;">
-                        ${messages.map(msg => renderMessageBubble(msg.side, msg.text)).join('')}
-                    </div>
-
-                    <!-- Input Area -->
-                    <div style="padding: 20px; border-top: 1px solid var(--border);">
-                        <form id="chat-form" style="display: flex; gap: 12px;">
-                            <input type="text" id="chat-input" placeholder="Type a message..." style="flex: 1; padding: 12px; border: 1px solid var(--border); border-radius: 10px; outline: none;" required>
-                            <button type="submit" class="btn-primary" style="padding: 12px;">
-                                <ion-icon name="send"></ion-icon>
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        setupForm();
-        scrollToBottom();
-    };
-
-    const setupForm = () => {
-        const form = document.getElementById('chat-form');
-        const input = document.getElementById('chat-input');
-        const feed = document.getElementById('chat-feed');
-
-        if (form) {
-            form.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const text = input.value.trim();
-                if (text) {
-                    // Add message to state
-                    messages.push({ side: 'right', text: text });
-                    
-                    // Append bubble manually for performance/smoothness instead of full re-render
-                    const div = document.createElement('div');
-                    div.innerHTML = renderMessageBubble('right', text);
-                    feed.appendChild(div.firstElementChild);
-                    
-                    input.value = '';
-                    scrollToBottom();
-                }
-            });
-        }
-    };
-
-    const scrollToBottom = () => {
-        const feed = document.getElementById('chat-feed');
-        if (feed) feed.scrollTop = feed.scrollHeight;
-    };
-
-    renderTemplate();
+  renderPage(container);
 }
 
-function renderMessageBubble(side, text) {
-    const isRight = side === 'right';
-    return `
-        <div style="display: flex; justify-content: ${isRight ? 'flex-end' : 'flex-start'};">
-            <div class="message-bubble" style="max-width: 70%; padding: 12px 16px; border-radius: 16px; font-size: 0.9rem; position: relative;
-                ${isRight ? 'background: var(--primary); color: white; border-bottom-right-radius: 4px;' : 'background: white; border: 1px solid var(--border); border-bottom-left-radius: 4px;'}">
-                ${text}
-                <div style="font-size: 0.6rem; margin-top: 4px; opacity: 0.7; text-align: ${isRight ? 'right' : 'left'};">Just now</div>
-            </div>
+function renderPage(container) {
+  const contact = getContact(selectedId);
+  const messages = chats[selectedId] || [];
+  const allContacts = getSearchedContacts();
+
+  container.innerHTML = `
+    <div class="coord-page-header" style="margin-bottom:0">
+      <div>
+        <h1 class="coord-page-title">Messages</h1>
+        <p class="coord-page-sub">Direct communications with your students and department admin</p>
+      </div>
+    </div>
+
+    <div class="coord-messages-shell">
+
+      <!-- LEFT PANEL -->
+      <div class="card coord-msg-left">
+        <div class="coord-msg-left-head">
+          <div class="coord-search-wrap compact">
+            <ion-icon name="search-outline"></ion-icon>
+            <input id="msg-search" type="text" placeholder="Search contacts…"
+              value="${escapeHtml(searchContacts)}" class="coord-search-input">
+          </div>
         </div>
-    `;
+
+        <div class="coord-contact-list" id="contact-list">
+          <!-- Admin Section -->
+          <div class="coord-contact-section-label">Admin</div>
+          <div class="coord-contact-item ${selectedId === "admin" ? "active" : ""}"
+               data-contact-id="admin">
+            <div class="coord-contact-avatar admin-avatar">DA</div>
+            <div class="coord-contact-info">
+              <h4>${adminContact.name}</h4>
+              <p class="coord-contact-preview">${lastMessage("admin")}</p>
+            </div>
+            <div class="coord-contact-meta">
+              <span class="coord-contact-time">${lastTime("admin")}</span>
+              <span class="coord-contact-status online"></span>
+            </div>
+          </div>
+
+          <!-- Students Section -->
+          <div class="coord-contact-section-label" style="margin-top:8px">My Students</div>
+          ${allContacts
+            .map((s) => {
+              const msgs = chats[s.id] || [];
+              const unread =
+                msgs.filter((m) => m.senderType === "student").length > 0 &&
+                msgs.length > 0;
+              return `
+              <div class="coord-contact-item ${selectedId === String(s.id) ? "active" : ""}"
+                   data-contact-id="${s.id}">
+                <div class="coord-contact-avatar" style="background:${avatarBg(s.id)}">${s.avatar}</div>
+                <div class="coord-contact-info">
+                  <h4>${s.name}</h4>
+                  <p class="coord-contact-preview">${lastMessage(s.id)}</p>
+                </div>
+                <div class="coord-contact-meta">
+                  <span class="coord-contact-time">${lastTime(s.id)}</span>
+                  <span class="coord-contact-status ${s.status === "online" ? "online" : ""}"></span>
+                </div>
+              </div>
+            `;
+            })
+            .join("")}
+        </div>
+      </div>
+
+      <!-- RIGHT PANEL -->
+      <div class="card coord-msg-right">
+        <!-- Chat Header -->
+        <div class="coord-chat-header">
+          <div class="coord-chat-header-avatar" style="background:${selectedId === "admin" ? "#1B3A6B" : avatarBg(parseInt(selectedId))}">
+            ${contact.avatar}
+          </div>
+          <div class="coord-chat-header-info">
+            <h3>${contact.name}</h3>
+            <span class="coord-chat-online ${contact.status === "online" ? "online" : ""}">
+              <span class="dot"></span>
+              ${contact.status === "online" ? "Online" : "Offline"}
+            </span>
+          </div>
+          ${
+            selectedId !== "admin"
+              ? `
+            <div class="coord-chat-header-actions">
+              <span class="coord-chat-dept-badge">Computer Science</span>
+            </div>
+          `
+              : ""
+          }
+        </div>
+
+        <!-- Message Feed -->
+        <div class="coord-chat-feed" id="chat-feed">
+          ${
+            messages.length > 0
+              ? messages.map((m) => renderBubble(m)).join("")
+              : `
+            <div class="coord-chat-empty">
+              <ion-icon name="chatbubbles-outline"></ion-icon>
+              <p>Start a conversation with ${contact.name}</p>
+            </div>
+          `
+          }
+        </div>
+
+        <!-- Input Bar -->
+        <div class="coord-chat-input-bar">
+          <button class="coord-attach-btn" id="attach-btn" title="Attach PDF or Image">
+            <ion-icon name="attach-outline"></ion-icon>
+          </button>
+          <input type="file" id="file-input" accept=".pdf,image/*" style="display:none">
+          <input type="text" id="chat-input-field" placeholder="Type a message…" class="coord-chat-input"
+                 autocomplete="off">
+          <button class="coord-send-btn btn-primary" id="send-btn">
+            <ion-icon name="send"></ion-icon>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  // Events
+  container.querySelector("#msg-search").addEventListener("input", (e) => {
+    searchContacts = e.target.value;
+    renderPage(container);
+  });
+
+  container.querySelectorAll(".coord-contact-item").forEach((item) => {
+    item.addEventListener("click", () => {
+      selectedId = item.dataset.contactId;
+      renderPage(container);
+    });
+  });
+
+  // Send message
+  const sendBtn = container.querySelector("#send-btn");
+  const inputFld = container.querySelector("#chat-input-field");
+  const attachBtn = container.querySelector("#attach-btn");
+  const fileInput = container.querySelector("#file-input");
+  const feed = container.querySelector("#chat-feed");
+
+  const sendMessage = () => {
+    const text = inputFld.value.trim();
+    if (!text) return;
+    if (!chats[selectedId]) chats[selectedId] = [];
+    const now = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const msg = {
+      id: Date.now(),
+      senderType: "coordinator",
+      senderName: "You",
+      message: text,
+      timestamp: now,
+    };
+    chats[selectedId].push(msg);
+
+    const bubble = document.createElement("div");
+    bubble.innerHTML = renderBubble(msg);
+    feed.appendChild(bubble.firstElementChild);
+    inputFld.value = "";
+    scrollToBottom(feed);
+  };
+
+  sendBtn.addEventListener("click", sendMessage);
+  inputFld.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  attachBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const allowed = [
+      "application/pdf",
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+    ];
+    if (!allowed.includes(file.type)) {
+      alert("Only PDF and image files are allowed!");
+      fileInput.value = "";
+      return;
+    }
+    const text = `📎 ${file.name}`;
+    if (!chats[selectedId]) chats[selectedId] = [];
+    const now = new Date().toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const msg = {
+      id: Date.now(),
+      senderType: "coordinator",
+      senderName: "You",
+      message: text,
+      timestamp: now,
+    };
+    chats[selectedId].push(msg);
+    const bubble = document.createElement("div");
+    bubble.innerHTML = renderBubble(msg);
+    feed.appendChild(bubble.firstElementChild);
+    fileInput.value = "";
+    scrollToBottom(feed);
+  });
+
+  scrollToBottom(feed);
+}
+
+function renderBubble(m) {
+  const isSelf = m.senderType === "coordinator";
+  return `
+    <div class="coord-bubble-wrap ${isSelf ? "self" : "other"}">
+      ${!isSelf ? `<div class="coord-bubble-avatar" style="background:${m.senderType === "admin" ? "#1B3A6B" : "#10b981"}">${m.senderName.charAt(0)}</div>` : ""}
+      <div class="coord-bubble ${isSelf ? "self" : "other"}">
+        <p>${escapeHtml(m.message)}</p>
+        <span class="coord-bubble-time">${m.timestamp}</span>
+      </div>
+    </div>
+  `;
+}
+
+function lastMessage(id) {
+  const msgs = chats[id] || [];
+  if (!msgs.length) return "No messages yet";
+  const last = msgs[msgs.length - 1];
+  const preview =
+    last.message.length > 40 ? last.message.slice(0, 40) + "…" : last.message;
+  return last.senderType === "coordinator" ? `You: ${preview}` : preview;
+}
+
+function lastTime(id) {
+  const msgs = chats[id] || [];
+  if (!msgs.length) return "";
+  return msgs[msgs.length - 1].timestamp || "";
+}
+
+function getContact(id) {
+  if (id === "admin") return adminContact;
+  return students.find((s) => s.id === parseInt(id)) || adminContact;
+}
+
+function getSearchedContacts() {
+  const q = searchContacts.toLowerCase();
+  return students.filter((s) => s.name.toLowerCase().includes(q));
+}
+
+function scrollToBottom(feed) {
+  if (feed)
+    setTimeout(() => {
+      feed.scrollTop = feed.scrollHeight;
+    }, 50);
+}
+
+const palette = [
+  "#1B3A6B",
+  "#2c5282",
+  "#10b981",
+  "#F5A623",
+  "#7c3aed",
+  "#ef4444",
+  "#0284c7",
+  "#f59e0b",
+  "#059669",
+  "#dc2626",
+];
+const avatarBg = (id) => palette[(id - 1) % palette.length];
+
+function escapeHtml(str = "") {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
