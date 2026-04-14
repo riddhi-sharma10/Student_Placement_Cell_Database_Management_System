@@ -53,6 +53,12 @@ const App = {
     async navigateTo(pageId) {
         this.state.currentPage = pageId;
         const pageContent = document.getElementById('page-content');
+        const resetScroll = () => {
+            if (pageContent) pageContent.scrollTop = 0;
+            window.scrollTo(0, 0);
+        };
+
+        resetScroll();
         
         // Update Sidebar active state
         if (this.Sidebar) this.Sidebar.updateActive(pageId);
@@ -66,8 +72,10 @@ const App = {
             if (module && module.render) {
                 pageContent.innerHTML = '';
                 module.render(pageContent, this);
+                resetScroll();
             } else {
                 pageContent.innerHTML = `<h1>Page not found: ${pageId}</h1>`;
+                resetScroll();
             }
         } catch (error) {
             console.error("Navigation error:", error);
@@ -77,6 +85,7 @@ const App = {
                     <p>The module for <b>${pageId}</b> could not be loaded.</p>
                 </div>
             `;
+            resetScroll();
         }
     },
 
@@ -85,6 +94,13 @@ const App = {
         this.state.user = null;
         this.state.role = null;
         window.location.reload();
+    },
+
+    viewCompany(companyName) {
+        // Store the selected company in session storage
+        sessionStorage.setItem('selectedCompany', companyName);
+        // Navigate to company view
+        this.navigateTo('company_view');
     }
 };
 

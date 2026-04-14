@@ -1,7 +1,7 @@
 // js/admin/users.js
 
 const users = [
-    { id: 1, name: 'James Sterling', username: 'j.sterling', email: 'j.sterling@university.edu', role: 'Admin', branch: 'CSE', entityId: 'ADM-2024-001', status: 'Active', permission: 'Stable', lastLoginDays: 0 },
+    { id: 1, name: 'James Sterling', username: 'j.sterling', email: 'j.sterling@university.edu', role: 'Admin', branch: '', entityId: 'ADM-2024-001', status: 'Active', permission: 'Elevated', lastLoginDays: 0 },
     { id: 2, name: 'Ananya Rao', username: 'ananya.r', email: 'ananya.r@st.university.edu', role: 'Coordinator', branch: 'ECE', entityId: 'CO-21-4492', status: 'Active', permission: 'Elevated', lastLoginDays: 2 },
     { id: 3, name: 'Marcus Knight', username: 'm.knight', email: 'm.knight@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-1108', status: 'Active', permission: 'Standard', lastLoginDays: 1 },
     { id: 4, name: 'Sarah Lopez', username: 's.lopez', email: 's.lopez@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-23-0881', status: 'Inactive', permission: 'Standard', lastLoginDays: 36 },
@@ -15,7 +15,7 @@ const users = [
     { id: 12, name: 'Neha Kulkarni', username: 'n.kulkarni', email: 'n.kulkarni@st.university.edu', role: 'Coordinator', branch: 'ME', entityId: 'CO-20-093', status: 'Active', permission: 'Elevated', lastLoginDays: 6 },
     { id: 13, name: 'Varun Sethi', username: 'v.sethi', email: 'v.sethi@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-23-0007', status: 'Inactive', permission: 'Standard', lastLoginDays: 33 },
     { id: 14, name: 'Aditi Jain', username: 'aditi.jain', email: 'aditi.jain@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-23-1908', status: 'Active', permission: 'Standard', lastLoginDays: 4 },
-    { id: 15, name: 'Suman Ghosh', username: 's.ghosh', email: 's.ghosh@university.edu', role: 'Admin', branch: 'ECE', entityId: 'ADM-2024-004', status: 'Active', permission: 'Stable', lastLoginDays: 0 },
+    { id: 15, name: 'Suman Ghosh', username: 's.ghosh', email: 's.ghosh@university.edu', role: 'Admin', branch: '', entityId: 'ADM-2024-004', status: 'Active', permission: 'Elevated', lastLoginDays: 0 },
     { id: 16, name: 'Karan Patel', username: 'karan.p', email: 'karan.p@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-24-0258', status: 'Pending', permission: 'Standard', lastLoginDays: 17 },
     { id: 17, name: 'Nidhi Kapoor', username: 'nidhi.k', email: 'nidhi.k@st.university.edu', role: 'Coordinator', branch: 'ECE', entityId: 'CO-20-117', status: 'Active', permission: 'Elevated', lastLoginDays: 8 },
     { id: 18, name: 'Tobias Reed', username: 't.reed', email: 't.reed@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-0502', status: 'Active', permission: 'Standard', lastLoginDays: 11 },
@@ -26,17 +26,12 @@ const users = [
 const state = {
     currentPage: 1,
     perPage: 10,
-    filters: {
-        query: '',
-        status: 'all',
-        branch: 'all',
-        permission: 'all',
-        activity: 'all',
-        viewRole: 'Student'
-    }
+    filters: getDefaultFilters()
 };
 
 export function render(container, app) {
+    resetUsersState();
+
     container.innerHTML = `
         <div class="admin-users-shell">
             <div class="admin-users-topline">
@@ -127,7 +122,6 @@ export function render(container, app) {
                                         <option value="all">All</option>
                                         <option value="Standard">Standard</option>
                                         <option value="Elevated">Elevated</option>
-                                        <option value="Stable">Stable</option>
                                         <option value="Restricted">Restricted</option>
                                     </select>
                                 </label>
@@ -147,22 +141,12 @@ export function render(container, app) {
                             </div>
                         </div>
                     </div>
-
-                    <button id="user-add-btn" class="btn-primary" type="button"><ion-icon name="person-add-outline"></ion-icon>Add New User</button>
                 </div>
 
                 <div class="data-table-container">
                     <table>
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>Username</th>
-                                <th>Role</th>
-                                <th>Branch</th>
-                                <th>Entity ID</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
+                        <thead id="user-directory-head">
+                            ${renderTableHead()}
                         </thead>
                         <tbody id="user-directory-body"></tbody>
                     </table>
@@ -178,6 +162,7 @@ export function render(container, app) {
 
     hydrateKpis();
     bindEvents();
+    configureFiltersForRole();
     renderTable();
 }
 
@@ -199,6 +184,9 @@ function bindEvents() {
             document.querySelectorAll('.admin-users-tab').forEach((t) => t.classList.remove('active'));
             tab.classList.add('active');
             state.filters.viewRole = tab.dataset.view;
+
+            resetFiltersForRoleSwitch();
+            configureFiltersForRole();
             state.currentPage = 1;
             renderTable();
         });
@@ -230,14 +218,10 @@ function bindEvents() {
     });
 
     document.getElementById('user-reset-filters')?.addEventListener('click', () => {
-        state.filters.query = '';
-        state.filters.status = 'all';
-        state.filters.branch = 'all';
-        state.filters.permission = 'all';
-        state.filters.activity = 'all';
+        resetFiltersForRoleSwitch();
         state.currentPage = 1;
 
-        document.getElementById('user-search').value = '';
+        configureFiltersForRole();
         syncFilterPanelInputsFromState();
         renderTable();
     });
@@ -250,9 +234,6 @@ function bindEvents() {
         }
     });
 
-    document.getElementById('user-add-btn')?.addEventListener('click', () => {
-        alert('Add New User flow will open in the next iteration.');
-    });
 }
 
 function renderTable() {
@@ -265,13 +246,20 @@ function renderTable() {
     const pageRows = filtered.slice(start, end);
 
     const tbody = document.getElementById('user-directory-body');
+    const thead = document.getElementById('user-directory-head');
     if (!tbody) return;
+
+    if (thead) {
+        thead.innerHTML = renderTableHead();
+    }
+
+    const includeBranch = state.filters.viewRole === 'Student' || state.filters.viewRole === 'Coordinator';
+    const noDataColspan = includeBranch ? 6 : 5;
 
     tbody.innerHTML = pageRows.length
         ? pageRows.map((user, idx) => renderRow(user, start + idx + 1)).join('')
-        : `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No users match the selected filters.</td></tr>`;
+        : `<tr><td colspan="${noDataColspan}" style="text-align:center;color:var(--text-muted);">No users match the selected filters.</td></tr>`;
 
-    bindRowActions();
     renderPagination(filtered.length, pages);
     renderSummary(filtered.length, start, pageRows.length);
 }
@@ -305,6 +293,8 @@ function matchesFilters(user) {
 }
 
 function renderRow(user, serial) {
+    const includeBranch = state.filters.viewRole === 'Student' || state.filters.viewRole === 'Coordinator';
+
     return `
         <tr>
             <td>${String(serial).padStart(2, '0')}</td>
@@ -318,13 +308,24 @@ function renderRow(user, serial) {
                 </div>
             </td>
             <td><span class="tag ${getRoleTag(user.role)}">${user.role.toUpperCase()}</span></td>
-            <td>${user.branch}</td>
+            ${includeBranch ? `<td>${user.branch || '-'}</td>` : ''}
             <td>${user.entityId}</td>
             <td><span class="tag ${getStatusTag(user.status)}">${user.status.toUpperCase()}</span></td>
-            <td>
-                <button class="admin-user-action" data-action="edit" data-id="${user.id}" type="button">Edit</button>
-                <button class="admin-user-action" data-action="toggle" data-id="${user.id}" type="button">${user.status === 'Active' ? 'Disable' : 'Enable'}</button>
-            </td>
+        </tr>
+    `;
+}
+
+function renderTableHead() {
+    const includeBranch = state.filters.viewRole === 'Student' || state.filters.viewRole === 'Coordinator';
+
+    return `
+        <tr>
+            <th>#</th>
+            <th>Username</th>
+            <th>Role</th>
+            ${includeBranch ? '<th>Branch</th>' : ''}
+            <th>Entity ID</th>
+            <th>Status</th>
         </tr>
     `;
 }
@@ -375,27 +376,6 @@ function renderSummary(filteredCount, start, pageRowsCount) {
     const from = start + 1;
     const to = start + pageRowsCount;
     summary.textContent = `Showing ${from} to ${to} of ${formatNumber(filteredCount)} results`;
-}
-
-function bindRowActions() {
-    document.querySelectorAll('.admin-user-action').forEach((btn) => {
-        btn.addEventListener('click', () => {
-            const id = Number(btn.dataset.id);
-            const action = btn.dataset.action;
-            const user = users.find((u) => u.id === id);
-            if (!user) return;
-
-            if (action === 'edit') {
-                alert(`Edit user: ${user.name}`);
-                return;
-            }
-
-            if (action === 'toggle') {
-                user.status = user.status === 'Active' ? 'Inactive' : 'Active';
-                renderTable();
-            }
-        });
-    });
 }
 
 function getInitials(name) {
@@ -454,4 +434,74 @@ function syncFilterPanelInputsFromState() {
 function getSelectValue(id) {
     const select = document.getElementById(id);
     return select ? select.value : 'all';
+}
+
+function configureFiltersForRole() {
+    const role = state.filters.viewRole;
+    const branchSelect = document.getElementById('user-branch-filter');
+    const permissionSelect = document.getElementById('user-permission-filter');
+
+    if (!branchSelect || !permissionSelect) return;
+
+    const branchField = branchSelect.closest('label');
+    const permissionField = permissionSelect.closest('label');
+
+    if (role === 'Admin') {
+        if (branchField) branchField.style.display = 'none';
+        if (permissionField) permissionField.style.display = 'block';
+        setSelectOptions('user-status-filter', ['all', 'Active', 'Inactive']);
+        setSelectOptions('user-permission-filter', ['all', 'Elevated']);
+        state.filters.branch = 'all';
+    } else if (role === 'Coordinator') {
+        if (branchField) branchField.style.display = 'block';
+        if (permissionField) permissionField.style.display = 'none';
+        setSelectOptions('user-status-filter', ['all', 'Active', 'Inactive']);
+        state.filters.permission = 'all';
+    } else {
+        if (branchField) branchField.style.display = 'block';
+        if (permissionField) permissionField.style.display = 'none';
+        setSelectOptions('user-status-filter', ['all', 'Active', 'Inactive', 'Pending', 'Suspended']);
+        state.filters.permission = 'all';
+    }
+}
+
+function setSelectOptions(selectId, values) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+
+    const previous = select.value;
+    select.innerHTML = values.map((value) => {
+        const label = value === 'all' ? 'All' : value;
+        return `<option value="${value}">${label}</option>`;
+    }).join('');
+
+    if (values.includes(previous)) select.value = previous;
+}
+
+function resetFiltersForRoleSwitch() {
+    state.filters.query = '';
+    state.filters.status = 'all';
+    state.filters.branch = 'all';
+    state.filters.permission = 'all';
+    state.filters.activity = 'all';
+    state.currentPage = 1;
+
+    const search = document.getElementById('user-search');
+    if (search) search.value = '';
+}
+
+function getDefaultFilters() {
+    return {
+        query: '',
+        status: 'all',
+        branch: 'all',
+        permission: 'all',
+        activity: 'all',
+        viewRole: 'Student'
+    };
+}
+
+function resetUsersState() {
+    state.currentPage = 1;
+    state.filters = getDefaultFilters();
 }

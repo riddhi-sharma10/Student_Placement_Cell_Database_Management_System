@@ -146,10 +146,6 @@ export function render(container, app) {
                                 </div>
                             </div>
                         </div>
-                        <button id="admin-export-csv" class="btn-primary" type="button">
-                            <ion-icon name="download-outline"></ion-icon>
-                            Export CSV
-                        </button>
                     </div>
                 </div>
 
@@ -262,7 +258,6 @@ function bindEvents(app) {
     const filterBtn = document.getElementById('admin-record-filter-btn');
     const filterPanel = document.getElementById('admin-record-filter-panel');
     const applyFilterBtn = document.getElementById('admin-apply-record-filter');
-    const exportBtn = document.getElementById('admin-export-csv');
     const viewAllBtn = document.getElementById('admin-view-all-companies');
 
     filterBtn?.addEventListener('click', () => {
@@ -274,14 +269,6 @@ function bindEvents(app) {
         dashboardState.statusFilter = filter?.value || 'all';
         filterPanel?.classList.add('hidden');
         renderRecentRecords();
-    });
-
-    exportBtn?.addEventListener('click', () => {
-        const status = dashboardState.statusFilter;
-        const rows = status === 'all'
-            ? dashboardData.records
-            : dashboardData.records.filter((record) => record.status === status);
-        exportRecordsAsCsv(rows);
     });
 
     document.addEventListener('click', (event) => {
