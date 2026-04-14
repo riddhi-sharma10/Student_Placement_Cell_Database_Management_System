@@ -1,6 +1,9 @@
 // js/auth/login.js
 
 export function initLogin(app) {
+    // Clear previously saved demo passwords
+    localStorage.removeItem('portal_passwords');
+
     const container = document.getElementById('auth-container');
     container.innerHTML = `
         <div class="login-card">

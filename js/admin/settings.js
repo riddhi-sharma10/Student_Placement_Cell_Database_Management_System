@@ -1,10 +1,10 @@
-// js/admin/settings.js
+// js/student/settings.js
 
 export function render(container, app) {
     container.innerHTML = `
         <div class="dashboard-header" style="margin-bottom: 32px;">
-            <h1 style="font-size: 2rem; color: var(--primary);">Admin Settings</h1>
-            <p style="color: var(--text-muted);">Manage your security and administrative notification preferences.</p>
+            <h1 style="font-size: 2rem; color: var(--primary);">Account Settings</h1>
+            <p style="color: var(--text-muted);">Manage your security and notification preferences.</p>
         </div>
 
         <div style="max-width: 800px;">
@@ -32,18 +32,18 @@ export function render(container, app) {
                 <h3>Notification Settings</h3>
                 <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 16px;">
                     <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-                        <span>System activity alerts</span>
-                        <input type="checkbox" id="pref-system" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
+                        <span>Email notifications for new jobs</span>
+                        <input type="checkbox" id="pref-email" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
                     </label>
                     <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-                        <span>Admin role escalations</span>
-                        <input type="checkbox" id="pref-role" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
+                        <span>SMS alerts for interview schedules</span>
+                        <input type="checkbox" id="pref-sms" checked style="width: 20px; height: 20px; accent-color: var(--primary);">
                     </label>
                     <label style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
-                        <span>Global announcements</span>
-                        <input type="checkbox" id="pref-global" style="width: 20px; height: 20px; accent-color: var(--primary);">
+                        <span>System announcements</span>
+                        <input type="checkbox" id="pref-ann" style="width: 20px; height: 20px; accent-color: var(--primary);">
                     </label>
-                    <button class="btn-primary" id="save-pref-btn" style="align-self: flex-start; margin-top: 20px;">Save Admin Preferences</button>
+                    <button class="btn-primary" id="save-pref-btn" style="align-self: flex-start; margin-top: 20px;">Save Preferences</button>
                 </div>
             </div>
         </div>
@@ -71,17 +71,17 @@ export function render(container, app) {
                     return;
                 }
 
-                if (next.length < 8) {
-                    showFeedback("Admin password must be at least 8 characters.", "red");
+                if (next.length < 6) {
+                    showFeedback("Password must be at least 6 characters.", "red");
                     return;
                 }
 
                 // Simulate API call
                 updatePassBtn.classList.add('btn-disabled');
-                updatePassBtn.innerText = "Updating Admin Auth...";
+                updatePassBtn.innerText = "Updating...";
                 
                 setTimeout(() => {
-                    showFeedback("Admin password updated successfully!", "green");
+                    showFeedback("Password updated successfully!", "green");
                     document.getElementById('current-pass').value = '';
                     document.getElementById('new-pass').value = '';
                     document.getElementById('confirm-pass').value = '';
@@ -104,14 +104,20 @@ export function render(container, app) {
         const savePrefBtn = document.getElementById('save-pref-btn');
         if (savePrefBtn) {
             savePrefBtn.addEventListener('click', () => {
+                const prefs = {
+                    email: document.getElementById('pref-email').checked,
+                    sms: document.getElementById('pref-sms').checked,
+                    ann: document.getElementById('pref-ann').checked
+                };
+
                 savePrefBtn.classList.add('btn-disabled');
-                savePrefBtn.innerText = "Saving Admin Prefs...";
+                savePrefBtn.innerText = "Saving...";
 
                 setTimeout(() => {
-                    savePrefBtn.innerText = "Admin Preferences Saved!";
+                    savePrefBtn.innerText = "Saved!";
                     setTimeout(() => {
                         savePrefBtn.classList.remove('btn-disabled');
-                        savePrefBtn.innerText = "Save Admin Preferences";
+                        savePrefBtn.innerText = "Save Preferences";
                     }, 1000);
                 }, 800);
             });
