@@ -56,7 +56,7 @@ const App = {
         try {
             let module;
             const role = this.state.role;
-            const commonPages = ['settings'];
+            const commonPages = ['settings', 'notifications', 'messages'];
             
             let modulePath;
             if (commonPages.includes(pageId)) {

@@ -76,7 +76,7 @@ export function initLogin(app) {
 
         const userData = {
             username: username,
-            name: username === 'admin' ? 'Super Admin' : `User ${username}`,
+            name: username === 'admin' ? 'Super Admin' : username,
             role: selectedRole,
             avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
         };
