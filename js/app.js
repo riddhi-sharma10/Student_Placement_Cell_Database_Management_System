@@ -1,8 +1,6 @@
 // js/app.js - Main Application Orchestrator
 
 import { initLogin } from './auth/login.js';
-import { Sidebar } from './common/sidebar.js';
-import { Navbar } from './common/navbar.js';
 
 const App = {
     state: {
@@ -33,13 +31,20 @@ const App = {
         initLogin(this);
     },
 
-    showPortal() {
+    async showPortal() {
         document.getElementById('auth-container').classList.add('hidden');
         document.getElementById('portal-container').classList.remove('hidden');
         
+        // Dynamic Role-based UI components
+        const sidebarModule = await import(`./${this.state.role}/sidebar.js`);
+        const navbarModule = await import(`./${this.state.role}/navbar.js`);
+        
+        this.Sidebar = sidebarModule.Sidebar;
+        this.Navbar = navbarModule.Navbar;
+
         // Initialize Core UI
-        Sidebar.render(this.state.role, this);
-        Navbar.render(this.state.user);
+        this.Sidebar.render(this.state.role, this);
+        this.Navbar.render(this.state.user);
         
         // Load default page
         this.navigateTo('dashboard');
@@ -50,22 +55,13 @@ const App = {
         const pageContent = document.getElementById('page-content');
         
         // Update Sidebar active state
-        Sidebar.updateActive(pageId);
+        if (this.Sidebar) this.Sidebar.updateActive(pageId);
 
-        // Dynamic Module Loading based on role and page
+        // Dynamic Module Loading based on role
         try {
-            let module;
             const role = this.state.role;
-            const commonPages = ['settings', 'notifications', 'messages'];
-            
-            let modulePath;
-            if (commonPages.includes(pageId)) {
-                modulePath = `./common/${pageId}.js`;
-            } else {
-                modulePath = `./${role}/${pageId}.js`;
-            }
-            
-            module = await import(modulePath);
+            const modulePath = `./${role}/${pageId}.js`;
+            const module = await import(modulePath);
             
             if (module && module.render) {
                 pageContent.innerHTML = '';
