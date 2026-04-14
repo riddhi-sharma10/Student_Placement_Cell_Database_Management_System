@@ -1,29 +1,457 @@
 // js/admin/users.js
 
+const users = [
+    { id: 1, name: 'James Sterling', username: 'j.sterling', email: 'j.sterling@university.edu', role: 'Admin', branch: 'CSE', entityId: 'ADM-2024-001', status: 'Active', permission: 'Stable', lastLoginDays: 0 },
+    { id: 2, name: 'Ananya Rao', username: 'ananya.r', email: 'ananya.r@st.university.edu', role: 'Coordinator', branch: 'ECE', entityId: 'CO-21-4492', status: 'Active', permission: 'Elevated', lastLoginDays: 2 },
+    { id: 3, name: 'Marcus Knight', username: 'm.knight', email: 'm.knight@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-1108', status: 'Active', permission: 'Standard', lastLoginDays: 1 },
+    { id: 4, name: 'Sarah Lopez', username: 's.lopez', email: 's.lopez@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-23-0881', status: 'Inactive', permission: 'Standard', lastLoginDays: 36 },
+    { id: 5, name: 'Rohit Menon', username: 'r.menon', email: 'r.menon@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-22-1037', status: 'Active', permission: 'Standard', lastLoginDays: 3 },
+    { id: 6, name: 'Meera Iyer', username: 'meera.i', email: 'meera.i@st.university.edu', role: 'Coordinator', branch: 'CSE', entityId: 'CO-19-204', status: 'Active', permission: 'Elevated', lastLoginDays: 5 },
+    { id: 7, name: 'Harish K', username: 'harish.k', email: 'harish.k@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-21-0984', status: 'Suspended', permission: 'Restricted', lastLoginDays: 45 },
+    { id: 8, name: 'Priya Nair', username: 'priya.nair', email: 'priya.nair@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-23-0170', status: 'Active', permission: 'Standard', lastLoginDays: 0 },
+    { id: 9, name: 'Dev Sharma', username: 'd.sharma', email: 'd.sharma@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-24-0332', status: 'Pending', permission: 'Standard', lastLoginDays: 14 },
+    { id: 10, name: 'Ishita Roy', username: 'ishita.roy', email: 'ishita.roy@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-22-0787', status: 'Active', permission: 'Standard', lastLoginDays: 9 },
+    { id: 11, name: 'Aman Desai', username: 'aman.desai', email: 'aman.desai@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-1304', status: 'Active', permission: 'Standard', lastLoginDays: 1 },
+    { id: 12, name: 'Neha Kulkarni', username: 'n.kulkarni', email: 'n.kulkarni@st.university.edu', role: 'Coordinator', branch: 'ME', entityId: 'CO-20-093', status: 'Active', permission: 'Elevated', lastLoginDays: 6 },
+    { id: 13, name: 'Varun Sethi', username: 'v.sethi', email: 'v.sethi@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-23-0007', status: 'Inactive', permission: 'Standard', lastLoginDays: 33 },
+    { id: 14, name: 'Aditi Jain', username: 'aditi.jain', email: 'aditi.jain@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-23-1908', status: 'Active', permission: 'Standard', lastLoginDays: 4 },
+    { id: 15, name: 'Suman Ghosh', username: 's.ghosh', email: 's.ghosh@university.edu', role: 'Admin', branch: 'ECE', entityId: 'ADM-2024-004', status: 'Active', permission: 'Stable', lastLoginDays: 0 },
+    { id: 16, name: 'Karan Patel', username: 'karan.p', email: 'karan.p@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-24-0258', status: 'Pending', permission: 'Standard', lastLoginDays: 17 },
+    { id: 17, name: 'Nidhi Kapoor', username: 'nidhi.k', email: 'nidhi.k@st.university.edu', role: 'Coordinator', branch: 'ECE', entityId: 'CO-20-117', status: 'Active', permission: 'Elevated', lastLoginDays: 8 },
+    { id: 18, name: 'Tobias Reed', username: 't.reed', email: 't.reed@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-0502', status: 'Active', permission: 'Standard', lastLoginDays: 11 },
+    { id: 19, name: 'Faiz Alam', username: 'f.alam', email: 'f.alam@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-21-0702', status: 'Suspended', permission: 'Restricted', lastLoginDays: 59 },
+    { id: 20, name: 'Kriti Das', username: 'kriti.d', email: 'kriti.d@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-22-0038', status: 'Active', permission: 'Standard', lastLoginDays: 2 }
+];
+
+const state = {
+    currentPage: 1,
+    perPage: 10,
+    filters: {
+        query: '',
+        status: 'all',
+        branch: 'all',
+        permission: 'all',
+        activity: 'all',
+        viewRole: 'Student'
+    }
+};
+
 export function render(container, app) {
     container.innerHTML = `
-        <div class="dashboard-header" style="margin-bottom: 32px;">
-            <h1 style="font-size: 2rem; color: var(--primary);">User Directory</h1>
-            <p style="color: var(--text-muted);">Manage all users across the institution.</p>
-        </div>
-        <div class="card">
-            <h3>Registered Users</h3>
-            <div class="data-table-container" style="margin-top: 20px;">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Username</th>
-                            <th>Role</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr><td>2021CSE001</td><td>Student</td><td><span class="tag tag-success">Active</span></td><td>Edit</td></tr>
-                        <tr><td>coord_mathur</td><td>Coordinator</td><td><span class="tag tag-success">Active</span></td><td>Edit</td></tr>
-                    </tbody>
-                </table>
+        <div class="admin-users-shell">
+            <div class="admin-users-topline">
+                <h2>The Placement Cell</h2>
+            </div>
+
+            <div class="admin-users-tabs" role="tablist" aria-label="User directory views">
+                <button class="admin-users-tab active" data-view="Student" type="button">Student</button>
+                <button class="admin-users-tab" data-view="Coordinator" type="button">Coordinator</button>
+                <button class="admin-users-tab" data-view="Admin" type="button">Admin</button>
+            </div>
+
+            <div class="admin-users-header">
+                <h1>User Directory</h1>
+                <p>Manage institutional access for engineering users across CSE, ECE, and ME with role-based controls.</p>
+            </div>
+
+            <div class="admin-users-kpis">
+                <div class="card admin-users-kpi-card">
+                    <div class="admin-users-kpi-top">
+                        <ion-icon name="people-outline"></ion-icon>
+                        <span class="admin-kpi-up">+12%</span>
+                    </div>
+                    <p>Total Users</p>
+                    <h3 id="kpi-total-users">0</h3>
+                </div>
+                <div class="card admin-users-kpi-card">
+                    <div class="admin-users-kpi-top">
+                        <ion-icon name="school-outline"></ion-icon>
+                        <span class="admin-kpi-up">+8%</span>
+                    </div>
+                    <p>Students</p>
+                    <h3 id="kpi-students">0</h3>
+                </div>
+                <div class="card admin-users-kpi-card">
+                    <div class="admin-users-kpi-top">
+                        <ion-icon name="star-outline"></ion-icon>
+                    </div>
+                    <p>Coordinators</p>
+                    <h3 id="kpi-coordinators">0</h3>
+                </div>
+                <div class="card admin-users-kpi-card">
+                    <div class="admin-users-kpi-top">
+                        <ion-icon name="shield-checkmark-outline"></ion-icon>
+                    </div>
+                    <p>Admins</p>
+                    <h3 id="kpi-core-team">0</h3>
+                </div>
+            </div>
+
+            <div class="card admin-users-directory-card">
+                <div class="admin-users-filter-row">
+                    <div class="admin-users-search-wrap">
+                        <ion-icon name="search-outline"></ion-icon>
+                        <input id="user-search" type="text" placeholder="Search by name, ID, username, or email...">
+                    </div>
+
+                    <div class="admin-filter-wrap">
+                        <button id="user-filter-btn" class="btn-primary admin-filter-btn" type="button">
+                            <ion-icon name="funnel-outline"></ion-icon>
+                            Filters
+                        </button>
+                        <div id="user-filter-panel" class="admin-filter-panel hidden">
+                            <div class="admin-filter-title">Apply Filters</div>
+                            <div class="admin-filter-grid">
+                                <label>
+                                    <span>Status</span>
+                                    <select id="user-status-filter" aria-label="Filter by status">
+                                        <option value="all">All</option>
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="Suspended">Suspended</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Branch</span>
+                                    <select id="user-branch-filter" aria-label="Filter by branch">
+                                        <option value="all">All</option>
+                                        <option value="CSE">CSE</option>
+                                        <option value="ECE">ECE</option>
+                                        <option value="ME">ME</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Permission</span>
+                                    <select id="user-permission-filter" aria-label="Filter by permission level">
+                                        <option value="all">All</option>
+                                        <option value="Standard">Standard</option>
+                                        <option value="Elevated">Elevated</option>
+                                        <option value="Stable">Stable</option>
+                                        <option value="Restricted">Restricted</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    <span>Activity</span>
+                                    <select id="user-activity-filter" aria-label="Filter by activity">
+                                        <option value="all">All</option>
+                                        <option value="0-7">Last 7 days</option>
+                                        <option value="8-30">Last 8-30 days</option>
+                                        <option value="31+">31+ days inactive</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="admin-filter-actions">
+                                <button id="user-reset-filters" class="admin-user-action" type="button">Reset</button>
+                                <button id="user-apply-filters" class="btn-primary" type="button">Apply</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="user-add-btn" class="btn-primary" type="button"><ion-icon name="person-add-outline"></ion-icon>Add New User</button>
+                </div>
+
+                <div class="data-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Branch</th>
+                                <th>Entity ID</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="user-directory-body"></tbody>
+                    </table>
+                </div>
+
+                <div class="admin-users-footer">
+                    <p id="user-results-summary"></p>
+                    <div id="user-pagination" class="admin-users-pagination"></div>
+                </div>
             </div>
         </div>
     `;
+
+    hydrateKpis();
+    bindEvents();
+    renderTable();
+}
+
+function hydrateKpis() {
+    const total = users.length;
+    const students = users.filter((u) => u.role === 'Student').length;
+    const coordinators = users.filter((u) => u.role === 'Coordinator').length;
+    const admins = users.filter((u) => u.role === 'Admin').length;
+
+    setText('kpi-total-users', formatNumber(total));
+    setText('kpi-students', formatNumber(students));
+    setText('kpi-coordinators', formatNumber(coordinators));
+    setText('kpi-core-team', formatNumber(admins));
+}
+
+function bindEvents() {
+    document.querySelectorAll('.admin-users-tab').forEach((tab) => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.admin-users-tab').forEach((t) => t.classList.remove('active'));
+            tab.classList.add('active');
+            state.filters.viewRole = tab.dataset.view;
+            state.currentPage = 1;
+            renderTable();
+        });
+    });
+
+    document.getElementById('user-search')?.addEventListener('input', (e) => {
+        state.filters.query = e.target.value.trim().toLowerCase();
+        state.currentPage = 1;
+        renderTable();
+    });
+
+    const filterBtn = document.getElementById('user-filter-btn');
+    const filterPanel = document.getElementById('user-filter-panel');
+    const applyBtn = document.getElementById('user-apply-filters');
+
+    filterBtn?.addEventListener('click', () => {
+        syncFilterPanelInputsFromState();
+        filterPanel?.classList.toggle('hidden');
+    });
+
+    applyBtn?.addEventListener('click', () => {
+        state.filters.status = getSelectValue('user-status-filter');
+        state.filters.branch = getSelectValue('user-branch-filter');
+        state.filters.permission = getSelectValue('user-permission-filter');
+        state.filters.activity = getSelectValue('user-activity-filter');
+        state.currentPage = 1;
+        filterPanel?.classList.add('hidden');
+        renderTable();
+    });
+
+    document.getElementById('user-reset-filters')?.addEventListener('click', () => {
+        state.filters.query = '';
+        state.filters.status = 'all';
+        state.filters.branch = 'all';
+        state.filters.permission = 'all';
+        state.filters.activity = 'all';
+        state.currentPage = 1;
+
+        document.getElementById('user-search').value = '';
+        syncFilterPanelInputsFromState();
+        renderTable();
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!filterPanel || !filterBtn) return;
+        const target = event.target;
+        if (target instanceof Node && !filterPanel.contains(target) && !filterBtn.contains(target)) {
+            filterPanel.classList.add('hidden');
+        }
+    });
+
+    document.getElementById('user-add-btn')?.addEventListener('click', () => {
+        alert('Add New User flow will open in the next iteration.');
+    });
+}
+
+function renderTable() {
+    const filtered = users.filter(matchesFilters);
+    const pages = Math.max(1, Math.ceil(filtered.length / state.perPage));
+    if (state.currentPage > pages) state.currentPage = pages;
+
+    const start = (state.currentPage - 1) * state.perPage;
+    const end = start + state.perPage;
+    const pageRows = filtered.slice(start, end);
+
+    const tbody = document.getElementById('user-directory-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = pageRows.length
+        ? pageRows.map((user, idx) => renderRow(user, start + idx + 1)).join('')
+        : `<tr><td colspan="7" style="text-align:center;color:var(--text-muted);">No users match the selected filters.</td></tr>`;
+
+    bindRowActions();
+    renderPagination(filtered.length, pages);
+    renderSummary(filtered.length, start, pageRows.length);
+}
+
+function matchesFilters(user) {
+    const queryMatch = !state.filters.query || [
+        user.name,
+        user.username,
+        user.email,
+        user.entityId,
+        user.branch,
+        user.role,
+        user.status,
+        user.permission
+    ].some((field) => String(field).toLowerCase().includes(state.filters.query));
+
+    const roleMatch = user.role === state.filters.viewRole;
+    const statusMatch = state.filters.status === 'all' || user.status === state.filters.status;
+    const branchMatch = state.filters.branch === 'all' || user.branch === state.filters.branch;
+    const permissionMatch = state.filters.permission === 'all' || user.permission === state.filters.permission;
+
+    const activityMatch = (() => {
+        if (state.filters.activity === 'all') return true;
+        if (state.filters.activity === '0-7') return user.lastLoginDays >= 0 && user.lastLoginDays <= 7;
+        if (state.filters.activity === '8-30') return user.lastLoginDays >= 8 && user.lastLoginDays <= 30;
+        if (state.filters.activity === '31+') return user.lastLoginDays >= 31;
+        return true;
+    })();
+
+    return queryMatch && roleMatch && statusMatch && branchMatch && permissionMatch && activityMatch;
+}
+
+function renderRow(user, serial) {
+    return `
+        <tr>
+            <td>${String(serial).padStart(2, '0')}</td>
+            <td>
+                <div class="admin-user-name-cell">
+                    <span class="admin-user-avatar">${getInitials(user.name)}</span>
+                    <div>
+                        <strong>${user.name}</strong>
+                        <p>${user.email}</p>
+                    </div>
+                </div>
+            </td>
+            <td><span class="tag ${getRoleTag(user.role)}">${user.role.toUpperCase()}</span></td>
+            <td>${user.branch}</td>
+            <td>${user.entityId}</td>
+            <td><span class="tag ${getStatusTag(user.status)}">${user.status.toUpperCase()}</span></td>
+            <td>
+                <button class="admin-user-action" data-action="edit" data-id="${user.id}" type="button">Edit</button>
+                <button class="admin-user-action" data-action="toggle" data-id="${user.id}" type="button">${user.status === 'Active' ? 'Disable' : 'Enable'}</button>
+            </td>
+        </tr>
+    `;
+}
+
+function renderPagination(total, pages) {
+    const pagination = document.getElementById('user-pagination');
+    if (!pagination) return;
+
+    if (total === 0) {
+        pagination.innerHTML = '';
+        return;
+    }
+
+    const pageButtons = getPageList(state.currentPage, pages);
+    pagination.innerHTML = `
+        <button class="admin-page-btn" data-page="prev" ${state.currentPage === 1 ? 'disabled' : ''}>
+            <ion-icon name="chevron-back-outline"></ion-icon>
+        </button>
+        ${pageButtons.map((item) => {
+            if (item === '...') return `<span class="admin-page-ellipsis">...</span>`;
+            return `<button class="admin-page-btn ${item === state.currentPage ? 'active' : ''}" data-page="${item}">${item}</button>`;
+        }).join('')}
+        <button class="admin-page-btn" data-page="next" ${state.currentPage === pages ? 'disabled' : ''}>
+            <ion-icon name="chevron-forward-outline"></ion-icon>
+        </button>
+    `;
+
+    pagination.querySelectorAll('.admin-page-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const page = btn.dataset.page;
+            if (page === 'prev' && state.currentPage > 1) state.currentPage -= 1;
+            else if (page === 'next' && state.currentPage < pages) state.currentPage += 1;
+            else if (!Number.isNaN(Number(page))) state.currentPage = Number(page);
+            renderTable();
+        });
+    });
+}
+
+function renderSummary(filteredCount, start, pageRowsCount) {
+    const summary = document.getElementById('user-results-summary');
+    if (!summary) return;
+
+    if (filteredCount === 0) {
+        summary.textContent = 'Showing 0 results';
+        return;
+    }
+
+    const from = start + 1;
+    const to = start + pageRowsCount;
+    summary.textContent = `Showing ${from} to ${to} of ${formatNumber(filteredCount)} results`;
+}
+
+function bindRowActions() {
+    document.querySelectorAll('.admin-user-action').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const id = Number(btn.dataset.id);
+            const action = btn.dataset.action;
+            const user = users.find((u) => u.id === id);
+            if (!user) return;
+
+            if (action === 'edit') {
+                alert(`Edit user: ${user.name}`);
+                return;
+            }
+
+            if (action === 'toggle') {
+                user.status = user.status === 'Active' ? 'Inactive' : 'Active';
+                renderTable();
+            }
+        });
+    });
+}
+
+function getInitials(name) {
+    return name.split(' ').slice(0, 2).map((chunk) => chunk.charAt(0)).join('').toUpperCase();
+}
+
+function getRoleTag(role) {
+    if (role === 'Admin') return 'tag-info';
+    if (role === 'Coordinator') return 'tag-warning';
+    return 'tag-success';
+}
+
+function getStatusTag(status) {
+    if (status === 'Active') return 'tag-success';
+    if (status === 'Pending') return 'tag-warning';
+    if (status === 'Suspended') return 'tag-danger';
+    return 'tag-info';
+}
+
+function getPageList(current, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+    const pages = [1];
+    if (current > 4) pages.push('...');
+
+    for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i += 1) {
+        pages.push(i);
+    }
+
+    if (current < total - 3) pages.push('...');
+    pages.push(total);
+    return pages;
+}
+
+function formatNumber(value) {
+    return new Intl.NumberFormat('en-IN').format(value);
+}
+
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+}
+
+function syncFilterPanelInputsFromState() {
+    const status = document.getElementById('user-status-filter');
+    const branch = document.getElementById('user-branch-filter');
+    const permission = document.getElementById('user-permission-filter');
+    const activity = document.getElementById('user-activity-filter');
+
+    if (status) status.value = state.filters.status;
+    if (branch) branch.value = state.filters.branch;
+    if (permission) permission.value = state.filters.permission;
+    if (activity) activity.value = state.filters.activity;
+}
+
+function getSelectValue(id) {
+    const select = document.getElementById(id);
+    return select ? select.value : 'all';
 }

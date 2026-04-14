@@ -20,7 +20,7 @@ export const Sidebar = {
                 { id: 'company', label: 'Company View', icon: 'business-outline' },
             ],
             admin: [
-                { id: 'overview', label: 'Overview', icon: 'earth-outline' },
+                { id: 'dashboard', label: 'Dashboard', icon: 'grid-outline' },
                 { id: 'users', label: 'User Directory', icon: 'people-circle-outline' },
                 { id: 'analytics', label: 'Reports & Analytics', icon: 'bar-chart-outline' },
                 { id: 'companies', label: 'Registered Cos.', icon: 'business-outline' },
