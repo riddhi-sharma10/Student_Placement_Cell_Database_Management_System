@@ -71,20 +71,44 @@ export function initLogin(app) {
 
     // Form Submission
     const form = document.getElementById('login-form');
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        const username = document.getElementById('username').value;
-        const displayName = selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1);
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
 
-        const userData = {
-            username: username,
-            name: username === 'admin' ? 'Super Admin' : username,
-            role: selectedRole,
-            avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`
-        };
+        const btn = form.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = 'Connecting... <ion-icon name="sync-outline" class="spin"></ion-icon>';
+        btn.disabled = true;
 
-        localStorage.setItem('placement_user', JSON.stringify(userData));
-        app.checkAuth();
+        try {
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, role: selectedRole })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                alert(data.error || 'Login failed');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            // Save token and user to localStorage
+            localStorage.setItem('placement_token', data.token);
+            localStorage.setItem('placement_user', JSON.stringify(data.user));
+
+            app.checkAuth(); // takes you to the portal
+
+        } catch (err) {
+            console.error("Login error:", err);
+            alert('Could not connect to server. Is your backend running?');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     });
 }

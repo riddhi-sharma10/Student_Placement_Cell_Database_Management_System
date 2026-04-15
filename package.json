@@ -5,6 +5,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite",
+    "server": "cd server && node index.js",
+    "start": "concurrently \"npm run dev\" \"npm run server\"",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -20,6 +22,7 @@
   },
   "homepage": "https://github.com/riddhi-sharma10/Student_Placement_Cell_Database_Management_System#readme",
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "vite": "^8.0.8"
   }
 }

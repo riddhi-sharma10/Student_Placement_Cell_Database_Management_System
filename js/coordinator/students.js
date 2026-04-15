@@ -1,6 +1,6 @@
 // js/coordinator/students.js — PAGE 2: MY STUDENTS
 
-import { students } from './data.js';
+import { api } from '../api.js';
 
 const palette = ['#1B3A6B','#2c5282','#10b981','#F5A623','#7c3aed','#ef4444','#0284c7','#f59e0b','#059669','#dc2626'];
 const avatarBg = id => palette[(id - 1) % palette.length];
@@ -10,9 +10,34 @@ let filterStatus = 'All';
 let cgpaMin = '';
 let cgpaMax = '';
 let openProfileId = null;
+let students = []; // Global state for students fetched from API
 
-export function render(container, app) {
-  renderPage(container);
+export async function render(container, app) {
+  // Show a loading spinner first
+  container.innerHTML = `
+      <div style="display:flex;justify-content:center;align-items:center;height:60vh;">
+          <div style="text-align:center;">
+              <ion-icon name="sync-outline" style="font-size:3rem;color:var(--primary);animation:spin 1s linear infinite;"></ion-icon>
+              <p style="color:var(--text-muted);margin-top:16px;">Loading students from Database...</p>
+          </div>
+      </div>
+  `;
+
+  try {
+      // Fetch real data from your backend
+      students = await api.get('/students');
+      // Now render with real data
+      renderPage(container);
+  } catch (err) {
+      container.innerHTML = `
+          <div class="card" style="padding: 40px; text-align: center;">
+              <ion-icon name="alert-circle-outline" style="font-size: 3rem; color: #ef4444;"></ion-icon>
+              <h2 style="margin-top: 16px;">Failed to fetch students</h2>
+              <p style="color:var(--text-muted); margin-top: 8px;">${err.message}</p>
+              <button onclick="window.location.reload()" class="btn-primary" style="margin-top: 24px;">Retry Connection</button>
+          </div>
+      `;
+  }
 }
 
 function renderPage(container) {

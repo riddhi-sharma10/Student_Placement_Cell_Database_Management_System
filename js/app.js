@@ -16,7 +16,8 @@ const App = {
 
     checkAuth() {
         const savedUser = localStorage.getItem('placement_user');
-        if (savedUser) {
+        const token = localStorage.getItem('placement_token');
+        if (savedUser && token) {
             this.state.user = JSON.parse(savedUser);
             this.state.role = this.state.user.role;
             this.showPortal();
@@ -91,6 +92,7 @@ const App = {
 
     logout() {
         localStorage.removeItem('placement_user');
+        localStorage.removeItem('placement_token');
         this.state.user = null;
         this.state.role = null;
         window.location.reload();
