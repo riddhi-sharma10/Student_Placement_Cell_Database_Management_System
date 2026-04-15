@@ -1,62 +1,69 @@
-// server/routes/auth.js
+// server/routes/auth.js — UPDATED WITH HASHING SUPPORT
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import pool from '../db.js';
+import crypto from 'crypto';
 
 const router = express.Router();
 
-// POST /api/auth/login
-// Called when user clicks "Login to Portal"
 router.post('/login', async (req, res) => {
-    const { username, password, role } = req.body;
-
-    // Basic validation
-    if (!username || !password || !role) {
-        return res.status(400).json({ error: 'Username, password and role are required' });
-    }
+    const { username, password } = req.body; 
+    console.log(`Login attempt for: ${username}`);
 
     try {
-        // Query MySQL: find user with this username AND role
-        const [rows] = await pool.query(
-            'SELECT * FROM users WHERE username = ? AND role = ?',
-            [username, role]
+        // 1. Check USER_ROLE table
+        const [users] = await pool.query(
+            'SELECT * FROM USER_ROLE WHERE username = ?', 
+            [username]
         );
 
-        // No user found
-        if (rows.length === 0) {
-            return res.status(401).json({ error: 'Invalid username or role' });
+        if (users.length === 0) {
+            console.log(`User not found: ${username}`);
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        const user = rows[0];
+        const user = users[0];
+        const hashedInput = crypto.createHash('sha256').update(password).digest('hex');
+        
+        console.log(`DB Hash: ${user.password_hash}`);
+        console.log(`In Hash: ${hashedInput}`);
 
-        // Check password (plain text comparison for now)
-        if (user.password !== password) {
-            return res.status(401).json({ error: 'Wrong password' });
+        // 3. Compare hashes
+        if (user.password_hash !== hashedInput && user.password_hash !== password) {
+             // Fallback to literal comparison just in case some are plain text
+             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
-        // Create a JWT token — this is like a wristband
-        // It proves the user is logged in for the next 8 hours
+        // 4. Fetch specific details (Name) based on role
+        let displayName = user.username;
+        if (user.role === 'student' && user.entity_id) {
+            const [details] = await pool.query('SELECT s_name FROM STUDENT WHERE s_id = ?', [user.entity_id]);
+            if (details.length > 0) displayName = details[0].s_name;
+        } else if ((user.role === 'coordinator' || user.role === 'admin') && user.entity_id) {
+            const [details] = await pool.query('SELECT name FROM CGDC_ADMIN WHERE cgdc_id = ?', [user.entity_id]);
+            if (details.length > 0) displayName = details[0].name;
+        }
+
+        // 5. Generate Token
         const token = jwt.sign(
-            { id: user.id, role: user.role, username: user.username },
+            { id: user.user_id, role: user.role, entityId: user.entity_id },
             process.env.JWT_SECRET,
-            { expiresIn: '8h' }
+            { expiresIn: '24h' }
         );
 
-        // Send back the token and user info
         res.json({
             token,
             user: {
-                id: user.id,
-                name: user.name,
-                username: user.username,
+                id: user.user_id,
+                name: displayName,
                 role: user.role,
-                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username}`
+                entityId: user.entity_id
             }
         });
 
     } catch (err) {
-        console.error('Login error:', err);
-        res.status(500).json({ error: 'Server error during login' });
+        console.error(err);
+        res.status(500).json({ message: 'Server error' });
     }
 });
 

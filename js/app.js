@@ -37,8 +37,8 @@ const App = {
         document.getElementById('portal-container').classList.remove('hidden');
         
         // Dynamic Role-based UI components
-        const sidebarModule = await import(`./${this.state.role}/sidebar.js`);
-        const navbarModule = await import(`./${this.state.role}/navbar.js`);
+        const sidebarModule = await import(/* @vite-ignore */ `./${this.state.role}/sidebar.js`);
+        const navbarModule = await import(/* @vite-ignore */ `./${this.state.role}/navbar.js`);
         
         this.Sidebar = sidebarModule.Sidebar;
         this.Navbar = navbarModule.Navbar;
@@ -68,7 +68,7 @@ const App = {
         try {
             const role = this.state.role;
             const modulePath = `./${role}/${pageId}.js`;
-            const module = await import(modulePath);
+            const module = await import(/* @vite-ignore */ modulePath);
             
             if (module && module.render) {
                 pageContent.innerHTML = '';

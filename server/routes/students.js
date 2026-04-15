@@ -1,58 +1,32 @@
-// server/routes/students.js
+// server/routes/students.js — UPDATED FOR REMOTE SCHEMA
 import express from 'express';
 import pool from '../db.js';
 import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// GET /api/students
-// Returns all students (admin) or only assigned students (coordinator)
+// Get all students
 router.get('/', requireAuth, async (req, res) => {
     try {
-        let query = 'SELECT * FROM students';
-        let params = [];
-
-        // If the logged-in user is a coordinator, only show their students
-        if (req.user.role === 'coordinator') {
-            query = 'SELECT * FROM students WHERE coordinator_id = ?';
-            params = [req.user.id];
-        }
-
-        const [rows] = await pool.query(query, params);
+        // Fetch from the STUDENT table
+        const [rows] = await pool.query('SELECT s_id as id, s_name as name, email, phone, dept, cgpa, profile_status as status FROM STUDENT');
         res.json(rows);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: 'Failed to fetch students' });
+        res.status(500).json({ message: 'Error fetching students' });
     }
 });
 
-// GET /api/students/:id
-// Returns one specific student's full profile
-router.get('/:id', requireAuth, async (req, res) => {
+// Get profile for current logged in student
+router.get('/profile', requireAuth, async (req, res) => {
+    if (req.user.role !== 'student') return res.status(403).json({ message: 'Access denied' });
+
     try {
-        const [rows] = await pool.query(
-            'SELECT * FROM students WHERE id = ?',
-            [req.params.id]
-        );
-        if (rows.length === 0) return res.status(404).json({ error: 'Student not found' });
+        const [rows] = await pool.query('SELECT * FROM STUDENT WHERE s_id = ?', [req.user.entityId]);
+        if (rows.length === 0) return res.status(404).json({ message: 'Student not found' });
         res.json(rows[0]);
     } catch (err) {
-        res.status(500).json({ error: 'Failed to fetch student' });
-    }
-});
-
-// PUT /api/students/:id
-// Updates a student's profile (e.g. placement status)
-router.put('/:id', requireAuth, async (req, res) => {
-    const { status, cgpa } = req.body;
-    try {
-        await pool.query(
-            'UPDATE students SET status = ?, cgpa = ? WHERE id = ?',
-            [status, cgpa, req.params.id]
-        );
-        res.json({ success: true, message: 'Student updated' });
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to update student' });
+        res.status(500).json({ message: 'Error fetching profile' });
     }
 });
 

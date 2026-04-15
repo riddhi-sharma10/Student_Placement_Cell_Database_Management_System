@@ -19,12 +19,13 @@ export const Sidebar = {
                 { id: 'applications', label: 'App Management', icon: 'people-outline' },
                 { id: 'company', label: 'Company View', icon: 'business-outline' },
             ],
-            admin: [
+            cgdc_admin: [
                 { id: 'dashboard', label: 'Dashboard', icon: 'grid-outline' },
                 { id: 'users', label: 'User Directory', icon: 'people-circle-outline' },
                 { id: 'analytics', label: 'Reports & Analytics', icon: 'bar-chart-outline' },
                 { id: 'companies', label: 'Registered Cos.', icon: 'business-outline' },
-                { id: 'records', label: 'Placement Records', icon: 'archive-outline' },
+                { id: 'normalization', label: 'Normalization Lab', icon: 'layers-outline' },
+                { id: 'views', label: 'SQL Views', icon: 'eye-outline' },
             ]
         };
 
