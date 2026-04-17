@@ -76,9 +76,9 @@ router.get('/dashboard', async (req, res) => {
             LIMIT 50
         `);
 
-        const totalStudents = students[0]?.count || 0;
-        const totalPlaced = offers[0]?.count || 0;
-        const totalRawOffers = totalJobOffers[0]?.count || 0;
+        const totalStudents = Number(students[0]?.count || 0);
+        const totalPlaced = Number(offers[0]?.count || 0);
+        const totalRawOffers = Number(totalJobOffers[0]?.count || 0);
         
         let placementPct = 0;
         if (totalStudents > 0) {
@@ -88,10 +88,10 @@ router.get('/dashboard', async (req, res) => {
         res.json({
             stats: [
                 { label: 'Total Students', value: totalStudents, icon: 'people-outline', note: '', noteType: 'neutral' },
-                { label: 'Companies', value: companies[0]?.count || 0, icon: 'business-outline', note: '', noteType: 'active' },
-                { label: 'Profiles Verified', value: verified[0]?.count || 0, icon: 'id-card-outline', note: '', noteType: 'neutral' },
-                { label: 'Applications', value: applications[0]?.count || 0, icon: 'send-outline', note: '', noteType: 'neutral' },
-                { label: 'Interviews', value: interviews[0]?.count || 0, icon: 'calendar-clear-outline', note: '', noteType: 'neutral' },
+                { label: 'Companies', value: Number(companies[0]?.count || 0), icon: 'business-outline', note: '', noteType: 'active' },
+                { label: 'Profiles Verified', value: Number(verified[0]?.count || 0), icon: 'id-card-outline', note: '', noteType: 'neutral' },
+                { label: 'Applications', value: Number(applications[0]?.count || 0), icon: 'send-outline', note: '', noteType: 'neutral' },
+                { label: 'Interviews', value: Number(interviews[0]?.count || 0), icon: 'calendar-clear-outline', note: '', noteType: 'neutral' },
                 { label: 'Total Offers', value: totalRawOffers, icon: 'checkmark-done-outline', note: '', noteType: 'neutral' },
                 { label: 'Placements', value: totalPlaced, icon: 'briefcase-outline', note: 'Unique students', noteType: 'active' },
                 { label: 'Placement %', value: `${placementPct.toFixed(1)}%`, icon: 'newspaper-outline', note: '', noteType: 'highlight' }
@@ -350,7 +350,7 @@ router.get('/company/:id', async (req, res) => {
     }
 });
 
-function normalizeStatus(status) { const value = String(status || '').toLowerCase(); if (['selected','placed','accepted'].includes(value)) return 'placed'; if (['under_review', 'shortlisted'].includes(value)) return 'in-progress'; if (value === 'rejected') return 'rejected'; return 'in-progress'; }
+function normalizeStatus(status) { const value = String(status || '').toLowerCase(); if (['selected', 'placed', 'accepted'].includes(value)) return 'placed'; if (['under_review', 'shortlisted'].includes(value)) return 'in-progress'; if (value === 'rejected') return 'rejected'; return 'in-progress'; }
 function capitalize(text) { return String(text || '').charAt(0).toUpperCase() + String(text || '').slice(1); }
 
 export default router;
