@@ -5,12 +5,12 @@ import { initLogin } from './auth/login.js';
 const App = {
     state: {
         user: null,
-        role: null, // 'student', 'coordinator', 'admin'
+        role: null,
         currentPage: 'dashboard'
     },
 
     init() {
-        console.log("Placement Portal Initialized");
+        console.log('Placement Portal Initialized');
         this.checkAuth();
     },
 
@@ -26,6 +26,10 @@ const App = {
         }
     },
 
+    getRoleFolder() {
+        return this.state.role === 'admin' ? 'cgdc_admin' : this.state.role;
+    },
+
     showLogin() {
         document.getElementById('auth-container').classList.remove('hidden');
         document.getElementById('portal-container').classList.add('hidden');
@@ -35,41 +39,36 @@ const App = {
     async showPortal() {
         document.getElementById('auth-container').classList.add('hidden');
         document.getElementById('portal-container').classList.remove('hidden');
-        
-        // Dynamic Role-based UI components
-        const sidebarModule = await import(/* @vite-ignore */ `./${this.state.role}/sidebar.js`);
-        const navbarModule = await import(/* @vite-ignore */ `./${this.state.role}/navbar.js`);
-        
+
+        const roleFolder = this.getRoleFolder();
+        const sidebarModule = await import(`./${roleFolder}/sidebar.js`);
+        const navbarModule = await import(`./${roleFolder}/navbar.js`);
+
         this.Sidebar = sidebarModule.Sidebar;
         this.Navbar = navbarModule.Navbar;
 
-        // Initialize Core UI
         this.Sidebar.render(this.state.role, this);
         this.Navbar.render(this.state.user);
-        
-        // Load default page
         this.navigateTo('dashboard');
     },
 
     async navigateTo(pageId) {
         this.state.currentPage = pageId;
         const pageContent = document.getElementById('page-content');
+        const roleFolder = this.getRoleFolder();
+
         const resetScroll = () => {
             if (pageContent) pageContent.scrollTop = 0;
             window.scrollTo(0, 0);
         };
 
         resetScroll();
-        
-        // Update Sidebar active state
         if (this.Sidebar) this.Sidebar.updateActive(pageId);
 
-        // Dynamic Module Loading based on role
         try {
-            const role = this.state.role;
-            const modulePath = `./${role}/${pageId}.js`;
+            const modulePath = `./${roleFolder}/${pageId}.js`;
             const module = await import(/* @vite-ignore */ modulePath);
-            
+
             if (module && module.render) {
                 pageContent.innerHTML = '';
                 module.render(pageContent, this);
@@ -79,7 +78,7 @@ const App = {
                 resetScroll();
             }
         } catch (error) {
-            console.error("Navigation error:", error);
+            console.error('Navigation error:', error);
             pageContent.innerHTML = `
                 <div class="card">
                     <h2>Error loading page</h2>
@@ -99,9 +98,7 @@ const App = {
     },
 
     viewCompany(companyName) {
-        // Store the selected company in session storage
         sessionStorage.setItem('selectedCompany', companyName);
-        // Navigate to company view
         this.navigateTo('company_view');
     }
 };
