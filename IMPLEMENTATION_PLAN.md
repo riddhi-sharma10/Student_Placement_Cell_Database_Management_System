@@ -102,7 +102,7 @@ What each package does:
 | `dotenv` | Reads your `.env` secret file |
 | `cors` | Allows your browser to talk to your server |
 | `jsonwebtoken` | Creates login tokens (like a wristband at an event) |
-
+ 
 Now go back to root and install concurrently (runs both servers at once):
 ```bash
 cd ..
