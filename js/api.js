@@ -1,6 +1,6 @@
 // js/api.js
 
-const BASE_URL = `${window.location.protocol}//${window.location.hostname}:3001/api`;
+const BASE_URL = '/api'; // proxied to http://localhost:3001
 
 // Core fetch function — automatically adds the login token
 async function request(path, options = {}) {

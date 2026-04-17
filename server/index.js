@@ -3,17 +3,13 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 
-dotenv.config({ path: '../.env' });
 dotenv.config();
 
 const app = express();
 
 // MIDDLEWARE (things that run before every request)
 app.use(cors({
-    origin: (origin, callback) => {
-        const allowed = !origin || /^(http:\/\/localhost:\d+|http:\/\/127\.0\.0\.1:\d+)$/.test(origin);
-        callback(null, allowed);
-    }
+    origin: 'http://localhost:5173' // your Vite frontend URL
 }));
 app.use(express.json()); // parse incoming JSON data
 
@@ -26,7 +22,6 @@ import analyticsRouter from './routes/analytics.js';
 import viewsRouter from './routes/views.js';
 import proceduresRouter from './routes/procedures.js';
 import jobsRouter from './routes/jobs.js';
-import adminRouter from './routes/admin.js';
 
 // REGISTER ROUTES
 // Any request to /api/auth/* → goes to auth.js
@@ -40,7 +35,6 @@ app.use('/api/analytics', analyticsRouter);
 app.use('/api/views', viewsRouter);
 app.use('/api/procedures', proceduresRouter);
 app.use('/api/jobs', jobsRouter);
-app.use('/api/admin', adminRouter);
 
 // Health check (open this in browser to test: http://localhost:3001/api/health)
 app.get('/api/health', (req, res) => {
