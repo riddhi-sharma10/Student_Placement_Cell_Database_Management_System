@@ -8,9 +8,10 @@ const router = express.Router();
 router.get('/', requireAuth, async (req, res) => {
     try {
         const [rows] = await pool.query(`
-            SELECT j.job_id as id, j.role, j.package_lpa as package, c.name as company 
+            SELECT j.job_id as id, j.role, j.package, c.comp_name as company 
             FROM JOB_PROFILE j
             JOIN COMPANY c ON j.comp_id = c.comp_id
+            WHERE j.status = 'open'
         `);
         res.json(rows);
     } catch (err) {

@@ -7,11 +7,20 @@ const router = express.Router();
 
 router.get('/', requireAuth, async (req, res) => {
     try {
-        let query = 'SELECT app_id as id, s_id, job_id, status, applied_date FROM APPLICATION';
+        // Use the view for full details (Company names, Roles, etc.)
+        let query = 'SELECT * FROM vw_application_full_details';
         let params = [];
 
         if (req.user.role === 'student') {
-            query += ' WHERE s_id = ?';
+            // We need to filter by student name if using the view, 
+            // OR join with the base table to filter by s_id.
+            // Joining with base table APPLICATION is safer for filtering by ID.
+            query = `
+                SELECT v.* 
+                FROM vw_application_full_details v
+                JOIN APPLICATION a ON v.app_id = a.app_id
+                WHERE a.s_id = ?
+            `;
             params.push(req.user.entityId);
         }
 
