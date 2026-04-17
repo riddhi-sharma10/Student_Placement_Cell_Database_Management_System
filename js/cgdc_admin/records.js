@@ -1,114 +1,91 @@
 // js/admin/records.js
+import { api } from '../api.js';
 
-const recordsByYear = {
-    '2023-24': {
-        title: 'Academic Year 2023-24',
-        subtitle: 'Strong placement cycle with a healthy mix of Tier 1 and growing product companies.',
-        stats: {
-            placements: 512,
-            offers: 684,
-            companies: 84,
-            averagePackage: '12.4 LPA'
-        },
-        records: [
-            { student: 'Jonathan Doe', department: 'Computer Science', company: 'Microsoft', packageLpa: 24.5, status: 'Placed' },
-            { student: 'Alice Miller', department: 'Mechanical Engineering', company: 'Tesla Inc.', packageLpa: 18.0, status: 'Placed' },
-            { student: 'Samuel Reed', department: 'Electronics and Communication Engineering', company: 'JP Morgan', packageLpa: 14.2, status: 'Placed' },
-            { student: 'Emma Lee', department: 'Electronics and Communication Engineering', company: 'Intel Corp', packageLpa: 21.5, status: 'Rejected' },
-            { student: 'Rohan Kapoor', department: 'Computer Science', company: 'Amazon', packageLpa: 31.0, status: 'In Progress' }
-        ]
-    },
-    '2022-23': {
-        title: 'Academic Year 2022-23',
-        subtitle: 'Stable placement volume with improved participation from service and consulting partners.',
-        stats: {
-            placements: 468,
-            offers: 611,
-            companies: 76,
-            averagePackage: '11.1 LPA'
-        },
-        records: [
-            { student: 'Meera Iyer', department: 'Computer Science', company: 'Deloitte', packageLpa: 16.4, status: 'Placed' },
-            { student: 'Aman Desai', department: 'Electronics and Communication Engineering', company: 'Infosys', packageLpa: 6.8, status: 'Placed' },
-            { student: 'Priya Nair', department: 'Computer Science', company: 'Cisco', packageLpa: 15.2, status: 'Placed' },
-            { student: 'Varun Sethi', department: 'Mechanical Engineering', company: 'Bosch', packageLpa: 9.4, status: 'In Progress' },
-            { student: 'Karan Patel', department: 'Electronics and Communication Engineering', company: 'Wipro', packageLpa: 5.2, status: 'Rejected' }
-        ]
-    },
-    '2021-22': {
-        title: 'Academic Year 2021-22',
-        subtitle: 'Rebuilding year with consistent recruiting activity and improved campus engagement.',
-        stats: {
-            placements: 414,
-            offers: 553,
-            companies: 68,
-            averagePackage: '9.8 LPA'
-        },
-        records: [
-            { student: 'Ananya Rao', department: 'Computer Science', company: 'TCS', packageLpa: 4.2, status: 'Placed' },
-            { student: 'Nidhi Kapoor', department: 'Electronics and Communication Engineering', company: 'Capgemini', packageLpa: 7.1, status: 'Placed' },
-            { student: 'Tobias Reed', department: 'Mechanical Engineering', company: 'HCL', packageLpa: 6.4, status: 'Placed' },
-            { student: 'Faiz Alam', department: 'Computer Science', company: 'Accenture', packageLpa: 8.5, status: 'In Progress' },
-            { student: 'Ishita Roy', department: 'Electronics and Communication Engineering', company: 'Cognizant', packageLpa: 5.8, status: 'Rejected' }
-        ]
-    }
-};
+let allRecords = [];
 
 const recordsState = {
-    activeYear: '2023-24',
     query: '',
     status: 'all',
     department: 'all'
 };
 
-export function render(container, app) {
-    const current = recordsByYear[recordsState.activeYear];
-    const filteredRecords = getFilteredRecords(current.records);
-    const statusSummary = getStatusSummary(current.records);
-    const departmentOptions = Array.from(new Set(current.records.map((record) => record.department)));
-    const placementRate = getPlacementRate(current.records);
-    const highestPackage = getHighestPackage(current.records);
-    const topRecruiter = getTopRecruiter(current.records);
+export async function render(container, app) {
+    // Show loading state
+    container.innerHTML = `
+        <div class="admin-dashboard-shell" style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+            <div style="text-align:center;color:var(--text-muted);">
+                <ion-icon name="hourglass-outline" style="font-size:2.5rem;display:block;margin:0 auto 12px;"></ion-icon>
+                <p>Loading placement records...</p>
+            </div>
+        </div>
+    `;
+
+    // Fetch records from the API
+    try {
+        const data = await api.get('/admin/records');
+        allRecords = (data?.rows || []).map(row => ({
+            ...row,
+            student: row.student || 'Unknown',
+            department: row.department || 'Unknown',
+            company: row.company || '-',
+            packageLpa: Number(row.packageLpa || 0),
+            status: formatStatusLabel(row.status),
+            initials: row.initials || getInitials(row.student || 'U')
+        }));
+    } catch (err) {
+        console.error('Failed to load records from API:', err);
+        allRecords = [];
+    }
+
+    renderPage(container, app);
+}
+
+function renderPage(container, app) {
+    const filteredRecords = getFilteredRecords(allRecords);
+    const statusSummary = getStatusSummary(allRecords);
+    const departmentOptions = Array.from(new Set(allRecords.map((record) => record.department)));
+    const placementRate = getPlacementRate(allRecords);
+    const highestPackage = getHighestPackage(allRecords);
+    const topRecruiter = getTopRecruiter(allRecords);
+    const totalPlaced = allRecords.filter(r => r.status === 'Placed').length;
+    const totalOffers = allRecords.length;
+    const uniqueCompanies = new Set(allRecords.map(r => r.company)).size;
+    const avgPackage = allRecords.length ? (allRecords.reduce((s, r) => s + r.packageLpa, 0) / allRecords.length).toFixed(1) : '0.0';
 
     container.innerHTML = `
         <div class="admin-dashboard-shell admin-records-shell">
             <div class="admin-dashboard-header admin-records-header">
                 <div>
-                    <h1>Year-wise Placement Records</h1>
-                    <p>Historical placement performance arranged by academic year and matched to the admin theme.</p>
+                    <h1>Placement Records</h1>
+                    <p>Live placement data from the database — filtered by status and department.</p>
                 </div>
             </div>
 
             <div class="card admin-record-hero">
                 <div class="admin-record-hero-top">
                     <div>
-                        <p class="admin-record-label">Selected Archive</p>
-                        <h2>${current.title}</h2>
-                        <p>${current.subtitle}</p>
-                    </div>
-                    <div class="admin-record-year-group" id="admin-record-year-group">
-                        ${Object.keys(recordsByYear).map((year) => `
-                            <button type="button" class="admin-year-pill ${year === recordsState.activeYear ? 'active' : ''}" data-year="${year}">${year}</button>
-                        `).join('')}
+                        <p class="admin-record-label">Database Records</p>
+                        <h2>All Placement Records</h2>
+                        <p>${allRecords.length} total records loaded from the placement database.</p>
                     </div>
                 </div>
 
                 <div class="admin-record-stats">
                     <div class="admin-record-stat">
                         <span>Total Placements</span>
-                        <strong>${formatNumber(current.stats.placements)}</strong>
+                        <strong>${formatNumber(totalPlaced)}</strong>
                     </div>
                     <div class="admin-record-stat">
-                        <span>Total Offers</span>
-                        <strong>${formatNumber(current.stats.offers)}</strong>
+                        <span>Total Records</span>
+                        <strong>${formatNumber(totalOffers)}</strong>
                     </div>
                     <div class="admin-record-stat">
                         <span>Hiring Companies</span>
-                        <strong>${formatNumber(current.stats.companies)}</strong>
+                        <strong>${formatNumber(uniqueCompanies)}</strong>
                     </div>
                     <div class="admin-record-stat admin-record-stat-accent">
                         <span>Average Package</span>
-                        <strong>${current.stats.averagePackage}</strong>
+                        <strong>${avgPackage} LPA</strong>
                     </div>
                     <div class="admin-record-stat">
                         <span>Highest Package</span>
@@ -157,13 +134,13 @@ export function render(container, app) {
 
                 <div class="card admin-record-summary-card">
                     <div class="admin-card-head">
-                        <h3>Archive Summary</h3>
-                        <span>Quick snapshot for the selected year</span>
+                        <h3>Summary</h3>
+                        <span>Quick snapshot of placement records</span>
                     </div>
                     <div class="admin-record-summary-list">
                         <div>
-                            <span>Archive</span>
-                            <strong>${recordsState.activeYear}</strong>
+                            <span>Total Records</span>
+                            <strong>${formatNumber(allRecords.length)}</strong>
                         </div>
                         <div>
                             <span>Placement ratio</span>
@@ -181,9 +158,9 @@ export function render(container, app) {
                 <div class="admin-card-head admin-card-head-inline">
                     <div>
                         <h3>Placement Records</h3>
-                        <span>Detailed records for ${recordsState.activeYear}</span>
+                        <span>Live data from the database</span>
                     </div>
-                    <span class="admin-record-pill">${formatNumber(filteredRecords.length)} / ${formatNumber(current.records.length)} entries</span>
+                    <span class="admin-record-pill">${formatNumber(filteredRecords.length)} / ${formatNumber(allRecords.length)} entries</span>
                 </div>
 
                 <div class="admin-record-controls">
@@ -206,7 +183,7 @@ export function render(container, app) {
                 </div>
 
                 <div class="admin-record-status-row">
-                    ${renderStatusChip('all', 'All', current.records.length)}
+                    ${renderStatusChip('all', 'All', allRecords.length)}
                     ${renderStatusChip('Placed', 'Placed', statusSummary.Placed)}
                     ${renderStatusChip('In Progress', 'In Progress', statusSummary['In Progress'])}
                     ${renderStatusChip('Rejected', 'Rejected', statusSummary.Rejected)}
@@ -228,7 +205,7 @@ export function render(container, app) {
                                     <tr>
                                         <td>
                                             <div class="admin-record-student">
-                                                <div class="admin-record-avatar">${getInitials(record.student)}</div>
+                                                <div class="admin-record-avatar">${record.initials}</div>
                                                 <strong>${record.student}</strong>
                                             </div>
                                         </td>
@@ -250,35 +227,25 @@ export function render(container, app) {
 }
 
 function bindInteractions(container, app) {
-    container.querySelectorAll('.admin-year-pill').forEach((button) => {
-        button.addEventListener('click', () => {
-            recordsState.activeYear = button.dataset.year;
-            recordsState.query = '';
-            recordsState.status = 'all';
-            recordsState.department = 'all';
-            render(container, app);
-        });
-    });
-
     container.querySelector('#admin-record-search')?.addEventListener('input', (event) => {
         recordsState.query = event.target.value.trim();
-        render(container, app);
+        renderPage(container, app);
     });
 
     container.querySelector('#admin-record-status-filter')?.addEventListener('change', (event) => {
         recordsState.status = event.target.value;
-        render(container, app);
+        renderPage(container, app);
     });
 
     container.querySelector('#admin-record-dept-filter')?.addEventListener('change', (event) => {
         recordsState.department = event.target.value;
-        render(container, app);
+        renderPage(container, app);
     });
 
     container.querySelectorAll('.admin-record-chip').forEach((button) => {
         button.addEventListener('click', () => {
             recordsState.status = button.dataset.status;
-            render(container, app);
+            renderPage(container, app);
         });
     });
 }
@@ -340,6 +307,14 @@ function renderStatusChip(status, label, count) {
             <span>${count}</span>
         </button>
     `;
+}
+
+function formatStatusLabel(status) {
+    // The API normalizes statuses to placed/in-progress/rejected
+    if (status === 'placed') return 'Placed';
+    if (status === 'in-progress') return 'In Progress';
+    if (status === 'rejected') return 'Rejected';
+    return 'In Progress';
 }
 
 function formatNumber(value) {

@@ -24,8 +24,7 @@ export const Sidebar = {
                 { id: 'users', label: 'User Directory', icon: 'people-circle-outline' },
                 { id: 'analytics', label: 'Reports & Analytics', icon: 'bar-chart-outline' },
                 { id: 'companies', label: 'Registered Cos.', icon: 'business-outline' },
-                { id: 'normalization', label: 'Normalization Lab', icon: 'layers-outline' },
-                { id: 'views', label: 'SQL Views', icon: 'eye-outline' },
+                { id: 'records', label: 'Placement Records', icon: 'document-text-outline' }
             ]
         };
 

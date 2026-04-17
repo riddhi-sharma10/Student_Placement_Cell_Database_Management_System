@@ -1,25 +1,7 @@
 // js/admin/companies.js
+import { api } from '../api.js';
 
-let companiesData = [
-    { name: 'Google India', industry: 'Technology', tier: 'Tier 1', activeJobs: 8, placements: 256, status: 'active', positions: [{ title: 'Software Engineer', salary: '12-18 LPA', skills: 'Python, Java' }, { title: 'Product Manager', salary: '15-20 LPA', skills: 'Analytics, Leadership' }] },
-    { name: 'Microsoft India', industry: 'Technology', tier: 'Tier 1', activeJobs: 6, placements: 198, status: 'active', positions: [{ title: 'Cloud Developer', salary: '10-16 LPA', skills: 'Azure, C#' }] },
-    { name: 'J.P. Morgan', industry: 'Fintech', tier: 'Tier 1', activeJobs: 5, placements: 142, status: 'active', positions: [{ title: 'Analyst', salary: '8-14 LPA', skills: 'Finance, SQL' }] },
-    { name: 'Goldman Sachs', industry: 'Finance', tier: 'Tier 1', activeJobs: 4, placements: 118, status: 'active', positions: [] },
-    { name: 'TCS', industry: 'IT Services', tier: 'Tier 2', activeJobs: 12, placements: 1450, status: 'active', positions: [{ title: 'IT Associate', salary: '3-4.5 LPA', skills: 'Java, SQL' }, { title: 'Senior Developer', salary: '8-12 LPA', skills: 'Java, Microservices' }] },
-    { name: 'Infosys', industry: 'IT Services', tier: 'Tier 2', activeJobs: 10, placements: 980, status: 'active', positions: [{ title: 'Systems Engineer', salary: '3-4.5 LPA', skills: 'C++, Unix' }] },
-    { name: 'Wipro', industry: 'IT Services', tier: 'Tier 2', activeJobs: 9, placements: 856, status: 'active', positions: [] },
-    { name: 'HCL Technologies', industry: 'IT Services', tier: 'Tier 2', activeJobs: 7, placements: 654, status: 'active', positions: [] },
-    { name: 'Cognizant', industry: 'IT Services', tier: 'Tier 2', activeJobs: 8, placements: 745, status: 'active', positions: [] },
-    { name: 'Amazon India', industry: 'E-commerce', tier: 'Tier 1', activeJobs: 9, placements: 287, status: 'active', positions: [{ title: 'SDE I', salary: '15-22 LPA', skills: 'DSA, Java/Python' }] },
-    { name: 'Adobe Systems', industry: 'Software', tier: 'Tier 1', activeJobs: 3, placements: 94, status: 'active', positions: [] },
-    { name: 'Accenture', industry: 'Consulting', tier: 'Tier 2', activeJobs: 11, placements: 1120, status: 'active', positions: [] },
-    { name: 'Deloitte', industry: 'Consulting', tier: 'Tier 2', activeJobs: 6, placements: 542, status: 'active', positions: [] },
-    { name: 'KPMG', industry: 'Consulting', tier: 'Tier 2', activeJobs: 5, placements: 398, status: 'active', positions: [] },
-    { name: 'McKinsey & Company', industry: 'Consulting', tier: 'Tier 1', activeJobs: 2, placements: 76, status: 'active', positions: [] },
-    { name: 'TechStartup AI', industry: 'AI/ML', tier: 'Startup', activeJobs: 3, placements: 28, status: 'active', positions: [] },
-    { name: 'CloudNine Solutions', industry: 'Cloud Computing', tier: 'Startup', activeJobs: 2, placements: 15, status: 'inactive', positions: [] },
-    { name: 'DataViz Analytics', industry: 'Analytics', tier: 'Startup', activeJobs: 1, placements: 8, status: 'active', positions: [] },
-];
+let companiesData = [];
 
 function getTierBadgeClass(tier) {
     switch(tier) {
@@ -67,7 +49,8 @@ function handleAddCompany(container, currentFilter) {
         activeJobs: parseInt(document.getElementById('activeJobs').value) || 0,
         placements: parseInt(document.getElementById('placements').value) || 0,
         status: document.getElementById('status').value,
-        positions: []
+        positions: [],
+        positionsCount: 0
     };
 
     // Validation
@@ -132,8 +115,35 @@ function addPositionField() {
     container.insertAdjacentHTML('beforeend', positionHTML);
 }
 
-export function render(container, app) {
+export async function render(container, app) {
     let currentFilter = 'all';
+
+    // Show loading state
+    container.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+            <div style="text-align:center;color:var(--text-muted);">
+                <ion-icon name="hourglass-outline" style="font-size:2.5rem;display:block;margin:0 auto 12px;"></ion-icon>
+                <p>Loading companies...</p>
+            </div>
+        </div>
+    `;
+
+    // Fetch companies from the API
+    try {
+        const rows = await api.get('/admin/companies');
+        companiesData = (rows || []).map(row => ({
+            ...row,
+            name: row.comp_name || row.name || 'Unknown',
+            activeJobs: Number(row.activeJobs || 0),
+            placements: Number(row.placements || 0),
+            positionsCount: Number(row.positionsCount || 0),
+            positions: row.positions || []
+        })).sort((a, b) => String(a.name).localeCompare(String(b.name), undefined, { numeric: true, sensitivity: 'base' }));
+    } catch (err) {
+        console.error('Failed to load companies from API:', err);
+        companiesData = [];
+    }
+
     let filteredData = [...companiesData];
 
     const renderTable = () => {
@@ -141,6 +151,7 @@ export function render(container, app) {
         filteredData.forEach(company => {
             tableHTML += `
                 <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                    <td style="padding: 14px 16px; font-weight: 700; color: #94a3b8; font-size: 0.85rem;">#${company.id || '-'}</td>
                     <td style="padding: 14px 16px; font-weight: 600; color: var(--primary);">${company.name}</td>
                     <td style="padding: 14px 16px; color: var(--text-secondary);">${company.industry}</td>
                     <td style="padding: 14px 16px;"><span class="tag ${getTierBadgeClass(company.tier)}">${company.tier}</span></td>
@@ -151,13 +162,13 @@ export function render(container, app) {
                         <span style="font-weight: 600;">${company.placements}</span>
                     </td>
                     <td style="padding: 14px 16px;">
-                        <span style="display: inline-block; background: #e8f0ff; color: #1e40af; padding: 4px 10px; border-radius: 5px; font-size: 0.8rem; font-weight: 600;">${(company.positions || []).length} Positions</span>
+                        <span style="display: inline-block; background: #e8f0ff; color: #1e40af; padding: 4px 10px; border-radius: 5px; font-size: 0.8rem; font-weight: 600;">${company.positionsCount || (company.positions || []).length} Positions</span>
                     </td>
                     <td style="padding: 14px 16px;">
                         <span class="tag ${getStatusBadgeClass(company.status)}">${company.status === 'active' ? '● Active' : '● Inactive'}</span>
                     </td>
                     <td style="padding: 14px 16px; text-align: right;">
-                        <button class="btn-primary" style="padding: 6px 14px; font-size: 0.85rem; border-radius: 4px;" onclick="window.App.viewCompany('${company.name}')">View</button>
+                        <button class="btn-primary view-company-btn" data-company-id="${company.id}" style="padding: 6px 14px; font-size: 0.85rem; border-radius: 4px;">View</button>
                     </td>
                 </tr>
             `;
@@ -171,6 +182,7 @@ export function render(container, app) {
                 <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">All (${companiesData.length})</button>
                 <button class="filter-btn ${currentFilter === 'tier1' ? 'active' : ''}" data-filter="tier1">Tier 1 (${companiesData.filter(c => c.tier === 'Tier 1').length})</button>
                 <button class="filter-btn ${currentFilter === 'tier2' ? 'active' : ''}" data-filter="tier2">Tier 2 (${companiesData.filter(c => c.tier === 'Tier 2').length})</button>
+                <button class="filter-btn ${currentFilter === 'tier3' ? 'active' : ''}" data-filter="tier3">Tier 3 (${companiesData.filter(c => c.tier === 'Tier 3').length})</button>
                 <button class="filter-btn ${currentFilter === 'startup' ? 'active' : ''}" data-filter="startup">Startup (${companiesData.filter(c => c.tier === 'Startup').length})</button>
             </div>
         `;
@@ -196,6 +208,7 @@ export function render(container, app) {
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead>
                         <tr style="background: var(--bg-secondary); border-bottom: 2px solid var(--border);">
+                            <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.4px;">ID</th>
                             <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.4px;">Company Name</th>
                             <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.4px;">Industry</th>
                             <th style="padding: 12px 16px; text-align: left; font-weight: 700; color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.4px;">Tier</th>
@@ -353,6 +366,20 @@ export function render(container, app) {
         });
     }
 
+    // View company detail buttons (delegated)
+    function wireViewButtons() {
+        container.querySelectorAll('.view-company-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const compId = btn.dataset.companyId;
+                if (compId) {
+                    sessionStorage.setItem('selectedCompany', compId);
+                    app.navigateTo('company_view');
+                }
+            });
+        });
+    }
+    wireViewButtons();
+
     // Filter functionality
     filterBtns.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -365,6 +392,8 @@ export function render(container, app) {
                 filteredData = companiesData.filter(c => c.tier === 'Tier 1');
             } else if (filterType === 'tier2') {
                 filteredData = companiesData.filter(c => c.tier === 'Tier 2');
+            } else if (filterType === 'tier3') {
+                filteredData = companiesData.filter(c => c.tier === 'Tier 3');
             } else if (filterType === 'startup') {
                 filteredData = companiesData.filter(c => c.tier === 'Startup');
             }
@@ -373,6 +402,7 @@ export function render(container, app) {
             const tableBody = document.getElementById('companiesTableBody');
             if (tableBody) {
                 tableBody.innerHTML = renderTable();
+                wireViewButtons();
             }
             
             // Update filter buttons

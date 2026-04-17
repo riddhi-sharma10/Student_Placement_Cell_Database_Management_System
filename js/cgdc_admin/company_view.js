@@ -1,26 +1,5 @@
 // js/admin/company_view.js
-
-// Sample companies data - will be synced with companies.js
-let companiesDataView = [
-    { name: 'Google India', industry: 'Technology', tier: 'Tier 1', activeJobs: 8, placements: 256, status: 'active', positions: [{ title: 'Software Engineer', salary: '12-18 LPA', skills: 'Python, Java' }, { title: 'Product Manager', salary: '15-20 LPA', skills: 'Analytics, Leadership' }] },
-    { name: 'Microsoft India', industry: 'Technology', tier: 'Tier 1', activeJobs: 6, placements: 198, status: 'active', positions: [{ title: 'Cloud Developer', salary: '10-16 LPA', skills: 'Azure, C#' }] },
-    { name: 'J.P. Morgan', industry: 'Fintech', tier: 'Tier 1', activeJobs: 5, placements: 142, status: 'active', positions: [{ title: 'Analyst', salary: '8-14 LPA', skills: 'Finance, SQL' }] },
-    { name: 'Goldman Sachs', industry: 'Finance', tier: 'Tier 1', activeJobs: 4, placements: 118, status: 'active', positions: [] },
-    { name: 'TCS', industry: 'IT Services', tier: 'Tier 2', activeJobs: 12, placements: 1450, status: 'active', positions: [{ title: 'IT Associate', salary: '3-4.5 LPA', skills: 'Java, SQL' }, { title: 'Senior Developer', salary: '8-12 LPA', skills: 'Java, Microservices' }] },
-    { name: 'Infosys', industry: 'IT Services', tier: 'Tier 2', activeJobs: 10, placements: 980, status: 'active', positions: [{ title: 'Systems Engineer', salary: '3-4.5 LPA', skills: 'C++, Unix' }] },
-    { name: 'Wipro', industry: 'IT Services', tier: 'Tier 2', activeJobs: 9, placements: 856, status: 'active', positions: [] },
-    { name: 'HCL Technologies', industry: 'IT Services', tier: 'Tier 2', activeJobs: 7, placements: 654, status: 'active', positions: [] },
-    { name: 'Cognizant', industry: 'IT Services', tier: 'Tier 2', activeJobs: 8, placements: 745, status: 'active', positions: [] },
-    { name: 'Amazon India', industry: 'E-commerce', tier: 'Tier 1', activeJobs: 9, placements: 287, status: 'active', positions: [{ title: 'SDE I', salary: '15-22 LPA', skills: 'DSA, Java/Python' }] },
-    { name: 'Adobe Systems', industry: 'Software', tier: 'Tier 1', activeJobs: 3, placements: 94, status: 'active', positions: [] },
-    { name: 'Accenture', industry: 'Consulting', tier: 'Tier 2', activeJobs: 11, placements: 1120, status: 'active', positions: [] },
-    { name: 'Deloitte', industry: 'Consulting', tier: 'Tier 2', activeJobs: 6, placements: 542, status: 'active', positions: [] },
-    { name: 'KPMG', industry: 'Consulting', tier: 'Tier 2', activeJobs: 5, placements: 398, status: 'active', positions: [] },
-    { name: 'McKinsey & Company', industry: 'Consulting', tier: 'Tier 1', activeJobs: 2, placements: 76, status: 'active', positions: [] },
-    { name: 'TechStartup AI', industry: 'AI/ML', tier: 'Startup', activeJobs: 3, placements: 28, status: 'active', positions: [] },
-    { name: 'CloudNine Solutions', industry: 'Cloud Computing', tier: 'Startup', activeJobs: 2, placements: 15, status: 'inactive', positions: [] },
-    { name: 'DataViz Analytics', industry: 'Analytics', tier: 'Startup', activeJobs: 1, placements: 8, status: 'active', positions: [] },
-];
+import { api } from '../api.js';
 
 function getTierBadgeClass(tier) {
     switch(tier) {
@@ -31,10 +10,6 @@ function getTierBadgeClass(tier) {
     }
 }
 
-function getTierDisplay(tier) {
-    return tier === 'Startup' ? 'Startup' : tier;
-}
-
 function getStatusBadgeClass(status) {
     return status === 'active' ? 'tag-success' : 'tag-muted';
 }
@@ -43,18 +18,63 @@ function getInitials(name) {
     return name.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
 }
 
-export function render(container, app) {
-    const companyName = sessionStorage.getItem('selectedCompany') || 'Google India';
-    
-    const company = companiesDataView.find(c => c.name === companyName) || {
-        name: 'Google India',
-        industry: 'Technology',
-        tier: 'Tier 1',
-        activeJobs: 8,
-        placements: 256,
-        status: 'active',
-        positions: []
-    };
+export async function render(container, app) {
+    const companyKey = sessionStorage.getItem('selectedCompany') || '';
+
+    // Show loading state
+    container.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+            <div style="text-align:center;color:var(--text-muted);">
+                <ion-icon name="hourglass-outline" style="font-size:2.5rem;display:block;margin:0 auto 12px;"></ion-icon>
+                <p>Loading company details...</p>
+            </div>
+        </div>
+    `;
+
+    let company = null;
+
+    // If companyKey is a number (ID), fetch by ID; otherwise fetch all and find by name
+    try {
+        const fetchWithTimeout = (promise) => Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Request timed out – restart your backend server')), 8000))
+        ]);
+
+        if (companyKey && !isNaN(Number(companyKey))) {
+            company = await fetchWithTimeout(api.get(`/admin/company/${companyKey}`));
+        } else {
+            // Fetch all companies and find by name
+            const allCompanies = await fetchWithTimeout(api.get('/admin/companies'));
+            company = (allCompanies || []).find(c => (c.name || c.comp_name) === companyKey);
+            
+            // If found by name, fetch the detailed info with positions
+            if (company && company.id) {
+                company = await fetchWithTimeout(api.get(`/admin/company/${company.id}`));
+            }
+        }
+
+        // Normalize name field (backend may return comp_name instead of name)
+        if (company && !company.name && company.comp_name) {
+            company.name = company.comp_name;
+        }
+    } catch (err) {
+        console.error('Failed to load company from API:', err);
+    }
+
+    if (!company) {
+        company = {
+            name: companyKey || 'Unknown Company',
+            industry: 'N/A',
+            tier: 'Unknown',
+            activeJobs: 0,
+            placements: 0,
+            status: 'inactive',
+            positions: []
+        };
+    }
+
+    // Final safety: ensure name always exists
+    company.name = company.name || company.comp_name || 'Unknown Company';
 
     container.innerHTML = `
         <div style="padding: 24px 32px;">
@@ -85,7 +105,7 @@ export function render(container, app) {
                             </div>
                             <div style="padding: 14px 0; border-top: 1px solid #e2e8f0;">
                                 <p style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px 0;">Company Tier</p>
-                                <div>${company.tier === 'Tier 1' ? `<span class="tag tag-tier1">Tier 1</span>` : company.tier === 'Tier 2' ? `<span class="tag tag-tier2">Tier 2</span>` : `<span class="tag tag-startup">Startup</span>`}</div>
+                                <div>${company.tier === 'Tier 1' ? `<span class="tag tag-tier1">Tier 1</span>` : company.tier === 'Tier 2' ? `<span class="tag tag-tier2">Tier 2</span>` : `<span class="tag tag-startup">${company.tier}</span>`}</div>
                             </div>
                             <div style="padding: 14px 0; border-top: 1px solid #e2e8f0;">
                                 <p style="font-size: 0.75rem; color: #64748b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin: 0 0 8px 0;">Status</p>

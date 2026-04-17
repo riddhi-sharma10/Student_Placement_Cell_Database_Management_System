@@ -1,76 +1,9 @@
 // js/admin/analytics.js
+import { api } from '../api.js';
 
-const analyticsDataByYear = {
-    '2022-23': {
-        kpis: {
-            placementRate: 78.4,
-            avgLpa: 9.8,
-            highestLpa: 28.0,
-            applications: 26840
-        },
-        salaryDistribution: [430, 520, 155, 48],
-        departmentPlacement: [76, 72, 68],
-        monthlyApplications: [1800, 1920, 2050, 2240, 2390, 2520],
-        monthlyOffers: [320, 355, 392, 430, 468, 502],
-        departments: [
-            { name: 'Computer Science Engineering', placementPct: 76, avgLpa: 11.2, medianAts: 78 },
-            { name: 'Electronics & Communication Engineering', placementPct: 72, avgLpa: 8.7, medianAts: 73 },
-            { name: 'Mechanical Engineering', placementPct: 68, avgLpa: 7.4, medianAts: 70 }
-        ],
-        insights: [
-            'CSE led with highest average package at ₹11.2 LPA.',
-            'Mechanical Engineering improved interview conversion by 6% over previous cycle.',
-            'Most offers (45%) were in the ₹5-10 LPA band.'
-        ]
-    },
-    '2023-24': {
-        kpis: {
-            placementRate: 82.1,
-            avgLpa: 10.9,
-            highestLpa: 34.0,
-            applications: 31265
-        },
-        salaryDistribution: [360, 610, 210, 72],
-        departmentPlacement: [83, 79, 74],
-        monthlyApplications: [2050, 2180, 2320, 2580, 2760, 2940],
-        monthlyOffers: [350, 402, 455, 500, 548, 590],
-        departments: [
-            { name: 'Computer Science Engineering', placementPct: 83, avgLpa: 12.8, medianAts: 81 },
-            { name: 'Electronics & Communication Engineering', placementPct: 79, avgLpa: 9.6, medianAts: 76 },
-            { name: 'Mechanical Engineering', placementPct: 74, avgLpa: 8.2, medianAts: 72 }
-        ],
-        insights: [
-            'Overall placement rate crossed 82% with stronger recruiter participation.',
-            'ECE saw 11% YoY growth in offers from product companies.',
-            'High-package bracket (> ₹20 LPA) increased from 48 to 72 offers.'
-        ]
-    },
-    '2024-25': {
-        kpis: {
-            placementRate: 84.2,
-            avgLpa: 12.4,
-            highestLpa: 42.0,
-            applications: 34591
-        },
-        salaryDistribution: [298, 670, 280, 104],
-        departmentPlacement: [86, 82, 78],
-        monthlyApplications: [2280, 2410, 2590, 2840, 3075, 3340],
-        monthlyOffers: [390, 438, 490, 556, 612, 674],
-        departments: [
-            { name: 'Computer Science Engineering', placementPct: 86, avgLpa: 14.6, medianAts: 84 },
-            { name: 'Electronics & Communication Engineering', placementPct: 82, avgLpa: 10.8, medianAts: 79 },
-            { name: 'Mechanical Engineering', placementPct: 78, avgLpa: 8.9, medianAts: 74 }
-        ],
-        insights: [
-            'CSE touched 86% placement with highest package at ₹42 LPA.',
-            'ECE crossed 80% placement due to embedded systems and VLSI hiring.',
-            'Applications grew 10.6% YoY while offer conversion stayed above 20%.'
-        ]
-    }
-};
+let analyticsData = null;
 
 const analyticsState = {
-    year: '2024-25',
     charts: {
         salary: null,
         dept: null,
@@ -78,18 +11,40 @@ const analyticsState = {
     }
 };
 
-export function render(container, app) {
+export async function render(container, app) {
+    // Show loading state
+    container.innerHTML = `
+        <div class="admin-dashboard-shell" style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+            <div style="text-align:center;color:var(--text-muted);">
+                <ion-icon name="hourglass-outline" style="font-size:2.5rem;display:block;margin:0 auto 12px;"></ion-icon>
+                <p>Loading analytics...</p>
+            </div>
+        </div>
+    `;
+
+    // Fetch analytics data from the API
+    try {
+        analyticsData = await api.get('/admin/analytics');
+    } catch (err) {
+        console.error('Failed to load analytics from API:', err);
+        analyticsData = {
+            kpis: { placementRate: 0, avgLpa: 0, highestLpa: 0, applications: 0 },
+            salaryDistribution: [0, 0, 0, 0],
+            departmentPlacement: [0, 0, 0],
+            monthlyApplications: [],
+            monthlyOffers: [],
+            monthLabels: [],
+            departments: [],
+            insights: ['Analytics data could not be loaded.']
+        };
+    }
+
     container.innerHTML = `
         <div class="admin-dashboard-shell">
             <div class="admin-dashboard-header">
                 <div>
                     <h1>Reports & Analytics</h1>
-                    <p>Deep dive into placement data and performance metrics.</p>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <select id="analytics-year" style="border:1px solid var(--border); border-radius:10px; padding:0 12px; font-weight:600; color:var(--text-main);">
-                        ${Object.keys(analyticsDataByYear).map((year) => `<option value="${year}" ${year === analyticsState.year ? 'selected' : ''}>${year}</option>`).join('')}
-                    </select>
+                    <p>Deep dive into placement data and performance metrics — powered by live database.</p>
                 </div>
             </div>
 
@@ -133,7 +88,7 @@ export function render(container, app) {
 
             <div style="display:grid; grid-template-columns: 2fr 1fr; gap:24px;">
                 <div class="card">
-                    <h3 style="margin-bottom: 14px; color:#0f2f61;">Applications vs Offers Trend (Jul - Dec)</h3>
+                    <h3 style="margin-bottom: 14px; color:#0f2f61;">Applications vs Offers Trend</h3>
                     <canvas id="trendChart" style="max-height: 320px;"></canvas>
                 </div>
                 <div class="card">
@@ -151,7 +106,6 @@ export function render(container, app) {
                                 <th>Department</th>
                                 <th>Placement %</th>
                                 <th>Average Package (LPA)</th>
-                                <th>Median ATS</th>
                             </tr>
                         </thead>
                         <tbody id="analytics-dept-table"></tbody>
@@ -161,30 +115,20 @@ export function render(container, app) {
         </div>
     `;
 
-    bindEvents();
     updateAnalyticsView();
 }
 
-function bindEvents() {
-    document.getElementById('analytics-year')?.addEventListener('change', (event) => {
-        analyticsState.year = event.target.value;
-        updateAnalyticsView();
-    });
-
-}
-
 function updateAnalyticsView() {
-    const yearData = analyticsDataByYear[analyticsState.year];
-    if (!yearData) return;
+    if (!analyticsData) return;
 
-    setText('kpi-placement-rate', `${yearData.kpis.placementRate.toFixed(1)}%`);
-    setText('kpi-avg-lpa', `₹${yearData.kpis.avgLpa.toFixed(1)} LPA`);
-    setText('kpi-highest-lpa', `₹${yearData.kpis.highestLpa.toFixed(1)} LPA`);
-    setText('kpi-applications', formatNumber(yearData.kpis.applications));
+    setText('kpi-placement-rate', `${analyticsData.kpis.placementRate.toFixed(1)}%`);
+    setText('kpi-avg-lpa', `₹${analyticsData.kpis.avgLpa.toFixed(1)} LPA`);
+    setText('kpi-highest-lpa', `₹${analyticsData.kpis.highestLpa.toFixed(1)} LPA`);
+    setText('kpi-applications', formatNumber(analyticsData.kpis.applications));
 
-    renderDepartmentTable(yearData.departments);
-    renderInsights(yearData.insights);
-    renderCharts(yearData);
+    renderDepartmentTable(analyticsData.departments);
+    renderInsights(analyticsData.insights);
+    renderCharts(analyticsData);
 }
 
 function renderInsights(insights) {
@@ -202,12 +146,11 @@ function renderDepartmentTable(rows) {
             <td>${row.name}</td>
             <td>${row.placementPct}%</td>
             <td>${row.avgLpa.toFixed(1)}</td>
-            <td>${row.medianAts}</td>
         </tr>
     `).join('');
 }
 
-function renderCharts(yearData) {
+function renderCharts(data) {
     destroyCharts();
 
     const salaryCanvas = document.getElementById('salaryChart');
@@ -217,7 +160,7 @@ function renderCharts(yearData) {
             data: {
                 labels: ['< 5 LPA', '5-10 LPA', '10-20 LPA', '> 20 LPA'],
                 datasets: [{
-                    data: yearData.salaryDistribution,
+                    data: data.salaryDistribution,
                     backgroundColor: ['#94a3b8', '#1B3A6B', '#F5A623', '#10b981'],
                     borderWidth: 0
                 }]
@@ -231,13 +174,17 @@ function renderCharts(yearData) {
 
     const deptCanvas = document.getElementById('pieChart');
     if (deptCanvas) {
+        const deptLabels = data.departments.slice(0, 5).map(d => d.name);
+        const deptValues = data.departments.slice(0, 5).map(d => d.placementPct);
+        const deptColors = ['#1B3A6B', '#355C91', '#7B8CA5', '#F5A623', '#10b981'];
+
         analyticsState.charts.dept = new Chart(deptCanvas, {
             type: 'pie',
             data: {
-                labels: ['CSE', 'ECE', 'ME'],
+                labels: deptLabels,
                 datasets: [{
-                    data: yearData.departmentPlacement,
-                    backgroundColor: ['#1B3A6B', '#355C91', '#7B8CA5']
+                    data: deptValues,
+                    backgroundColor: deptColors.slice(0, deptLabels.length)
                 }]
             },
             options: {
@@ -247,15 +194,15 @@ function renderCharts(yearData) {
     }
 
     const trendCanvas = document.getElementById('trendChart');
-    if (trendCanvas) {
+    if (trendCanvas && data.monthLabels && data.monthLabels.length > 0) {
         analyticsState.charts.trend = new Chart(trendCanvas, {
             type: 'line',
             data: {
-                labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                labels: data.monthLabels,
                 datasets: [
                     {
                         label: 'Applications',
-                        data: yearData.monthlyApplications,
+                        data: data.monthlyApplications,
                         borderColor: '#1B3A6B',
                         backgroundColor: 'rgba(27, 58, 107, 0.1)',
                         fill: true,
@@ -263,7 +210,7 @@ function renderCharts(yearData) {
                     },
                     {
                         label: 'Offers',
-                        data: yearData.monthlyOffers,
+                        data: data.monthlyOffers,
                         borderColor: '#F5A623',
                         backgroundColor: 'rgba(245, 166, 35, 0.08)',
                         fill: true,
