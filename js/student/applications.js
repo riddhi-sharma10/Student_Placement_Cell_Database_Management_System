@@ -24,19 +24,19 @@ function renderTable(container, apps) {
                 <table>
                     <thead>
                         <tr>
-                            <th>App ID</th>
+                            <th>Company</th>
+                            <th>Role</th>
                             <th>Status</th>
                             <th>Applied Date</th>
-                            <th>Reference</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${apps.map(a => `
                             <tr>
-                                <td><b>APP-${a.id}</b></td>
-                                <td><span class="tag ${a.status === 'Selected' ? 'tag-success' : 'tag-info'}">${a.status}</span></td>
+                                <td><b>${a.comp_name}</b></td>
+                                <td style="text-transform: capitalize;">${a.role}</td>
+                                <td><span class="tag ${a.status === 'selected' || a.status === 'Selected' ? 'tag-success' : 'tag-info'}">${a.status}</span></td>
                                 <td>${new Date(a.applied_date).toLocaleDateString()}</td>
-                                <td style="color:var(--text-muted); font-size: 0.8rem;">JOB-REF-${a.job_id}</td>
                             </tr>
                         `).join('')}
                         ${apps.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:32px;">No applications found. Try applying for a job first!</td></tr>' : ''}
