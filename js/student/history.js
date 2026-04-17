@@ -1,36 +1,24 @@
-// js/student/history.js
+import { api } from '../api.js';
 
-export function render(container, app) {
-    const archiveData = [
-        // 2024-2025
-        { year: "2024-2025", dept: "CSE", company: "Google India", role: "SDE / Analyst", placed: 12, highest: "₹45.0 LPA", average: "₹18.5 LPA" },
-        { year: "2024-2025", dept: "CSE", company: "Microsoft", role: "SDE I", placed: 8, highest: "₹42.0 LPA", average: "₹16.2 LPA" },
-        { year: "2024-2025", dept: "ECE", company: "Qualcomm", role: "Hardware Engineer", placed: 6, highest: "₹32.5 LPA", average: "₹14.0 LPA" },
-        { year: "2024-2025", dept: "ECE", company: "Intel", role: "VLSI Design", placed: 4, highest: "₹28.0 LPA", average: "₹12.5 LPA" },
-        { year: "2024-2025", dept: "ME", company: "Tata Motors", role: "GET", placed: 15, highest: "₹12.0 LPA", average: "₹7.5 LPA" },
-        { year: "2024-2025", dept: "ME", company: "L&T", role: "Project Engineer", placed: 10, highest: "₹9.5 LPA", average: "₹6.8 LPA" },
+export async function render(container, app) {
+    container.innerHTML = `<div style="padding:24px;"><h2>Fetching placement archives...</h2></div>`;
 
-        // 2023-2024
-        { year: "2023-2024", dept: "CSE", company: "Amazon", role: "Cloud Associate", placed: 18, highest: "₹32.0 LPA", average: "₹14.2 LPA" },
-        { year: "2023-2024", dept: "CSE", company: "Adobe", role: "Member Tech Staff", placed: 5, highest: "₹35.0 LPA", average: "₹15.5 LPA" },
-        { year: "2023-2024", dept: "ECE", company: "Texas Instruments", role: "Embedded Dev", placed: 3, highest: "₹25.0 LPA", average: "₹11.2 LPA" },
-        { year: "2023-2024", dept: "ECE", company: "Samsung", role: "R&D Engineer", placed: 7, highest: "₹22.0 LPA", average: "₹10.5 LPA" },
-        { year: "2023-2024", dept: "ME", company: "Maruti Suzuki", role: "Design Engineer", placed: 12, highest: "₹10.5 LPA", average: "₹7.2 LPA" },
-        { year: "2023-2024", dept: "ME", company: "BOSCH", role: "Systems Specialist", placed: 8, highest: "₹11.2 LPA", average: "₹7.8 LPA" },
+    try {
+        const historyData = await api.get('/analytics/history');
+        renderHistoryPage(container, historyData);
+    } catch (err) {
+        container.innerHTML = `<div class="card" style="padding:24px; color:#ef4444;">Sync Error: ${err.message}</div>`;
+    }
+}
 
-        // 2022-2023
-        { year: "2022-2023", dept: "CSE", company: "TCS Digital", role: "System Engineer", placed: 156, highest: "₹7.5 LPA", average: "₹7.0 LPA" },
-        { year: "2022-2023", dept: "ECE", company: "Infosys", role: "Specialist Programmer", placed: 45, highest: "₹9.5 LPA", average: "₹6.5 LPA" },
-        { year: "2022-2023", dept: "ME", company: "Mahindra & Mahindra", role: "Manufacturing Lead", placed: 20, highest: "₹8.5 LPA", average: "₹6.2 LPA" }
-    ];
-
-    let currentYear = "2024-2025";
+function renderHistoryPage(container, archiveData) {
+    let currentYear = "2024";
     let currentDept = "All Departments";
 
     const renderSelf = () => {
         const filteredRecords = archiveData.filter(record => {
-            const matchYear = record.year === currentYear;
-            const matchDept = currentDept === "All Departments" || record.dept === currentDept;
+            const matchYear = record.year.includes(currentYear);
+            const matchDept = currentDept === "All Departments" || (record.dept && record.dept === currentDept);
             return matchYear && matchDept;
         });
 
@@ -83,9 +71,9 @@ export function render(container, app) {
                                 ? filteredRecords.map(record => `
                                     <tr style="border-bottom: 1px solid var(--border);">
                                         <td style="padding: 16px; font-weight: 600; color: var(--primary);">${record.year}</td>
-                                        <td style="padding: 16px;"><span class="tag tag-info">${record.dept}</span></td>
-                                        <td style="padding: 16px;"><b>${record.company}</b></td>
-                                        <td style="padding: 16px;">${record.role}</td>
+                                        <td style="padding: 16px;"><span class="tag tag-info">${record.dept || 'N/A'}</span></td>
+                                        <td style="padding: 16px;"><b>${record.comp_name}</b></td>
+                                        <td style="padding: 16px;">${record.role || 'N/A'}</td>
                                         <td style="padding: 16px;">${record.placed}</td>
                                         <td style="padding: 16px; color: var(--success); font-weight: 700;">${record.highest}</td>
                                         <td style="padding: 16px; font-weight: 600;">${record.average}</td>

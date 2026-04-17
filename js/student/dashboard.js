@@ -58,7 +58,7 @@ function renderStudentDashboard(container, app, apps) {
                 <table>
                     <thead>
                         <tr>
-                            <th>Application ID</th>
+                            <th>Company</th>
                             <th>Status</th>
                             <th>Applied On</th>
                         </tr>
@@ -66,8 +66,8 @@ function renderStudentDashboard(container, app, apps) {
                     <tbody>
                         ${recentApps.map(a => `
                             <tr>
-                                <td><b>APP-${a.id}</b></td>
-                                <td><span class="tag ${a.status === 'Selected' ? 'tag-success' : 'tag-info'}">${a.status}</span></td>
+                                <td><b>${a.comp_name}</b></td>
+                                <td><span class="tag ${a.status === 'selected' || a.status === 'Selected' ? 'tag-success' : 'tag-info'}">${a.status}</span></td>
                                 <td style="color:var(--text-muted)">${new Date(a.applied_date).toLocaleDateString()}</td>
                             </tr>
                         `).join('')}
