@@ -39,7 +39,7 @@ function renderShell(container, rows) {
                                 <tr>
                                     <td><b>${r.studentName}</b></td>
                                     <td>${r.company}</td>
-                                    <td><span class="tag tag-info">${r.round}</span></td>
+                                    <td><span class="tag tag-info" style="text-transform: capitalize;">${r.mode}</span></td>
                                     <td style="color:var(--text-muted);font-size:0.85rem;">${r.panel || '—'}</td>
                                     <td>${r.date}</td>
                                     <td><span class="tag ${resultTag(r.result)}">${r.result.toUpperCase()}</span></td>

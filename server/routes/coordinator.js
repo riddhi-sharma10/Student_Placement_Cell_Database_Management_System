@@ -24,6 +24,8 @@ async function getCoordinator(coordId) {
     return rows[0];
 }
 
+
+
 /* ════════════════════════════════════════════════════
    GET /api/coordinator/dashboard
    Counts via JOIN on STUDENT.coord_id FK
@@ -62,8 +64,21 @@ router.get('/dashboard', async (req, res) => {
             ? ((totalPlaced / totalStudents) * 100).toFixed(1)
             : '0.0';
 
-        console.log('[coordinator/dashboard] result:', { totalStudents, totalPlaced, placementRate, totalApplications, upcomingInterviews });
-        res.json({ totalStudents, totalPlaced, placementRate, totalApplications, upcomingInterviews });
+        const [appStats] = await pool.query(
+            `SELECT c.comp_name as company, COUNT(a.app_id) as count
+             FROM APPLICATION a
+             INNER JOIN STUDENT s ON a.s_id = s.s_id
+             INNER JOIN JOB_PROFILE j ON a.job_id = j.job_id
+             INNER JOIN COMPANY c ON j.comp_id = c.comp_id
+             WHERE s.coord_id = ?
+             GROUP BY c.comp_id, c.comp_name
+             ORDER BY count DESC
+             LIMIT 5`,
+            [coordId]
+        );
+
+        console.log('[coordinator/dashboard] result:', { totalStudents, totalPlaced, placementRate, totalApplications, upcomingInterviews, appStats });
+        res.json({ totalStudents, totalPlaced, placementRate, totalApplications, upcomingInterviews, appStats });
     } catch (err) {
         console.error('[coordinator/dashboard] ERROR:', err.message);
         res.status(500).json({ message: err.message });
@@ -339,7 +354,7 @@ router.get('/profile', async (req, res) => {
             email: coord.email,
             phone: coord.phone_no || 'Not set',
             department: coord.dept,
-            designation: `Placement Coordinator — ${coord.dept}`,
+            designation: 'Placement Coordinator',
             studentsManaged: count,
             studentsPlaced: placed
         });

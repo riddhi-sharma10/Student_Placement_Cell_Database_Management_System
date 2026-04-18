@@ -1,19 +1,19 @@
 // js/admin/analytics.js
-import { api } from '../api.js';
+import { api } from "../api.js";
 
 let analyticsData = null;
 
 const analyticsState = {
-    charts: {
-        salary: null,
-        dept: null,
-        trend: null
-    }
+  charts: {
+    salary: null,
+    dept: null,
+    trend: null,
+  },
 };
 
 export async function render(container, app) {
-    // Show loading state
-    container.innerHTML = `
+  // Show loading state
+  container.innerHTML = `
         <div class="admin-dashboard-shell" style="display:flex;align-items:center;justify-content:center;min-height:400px;">
             <div style="text-align:center;color:var(--text-muted);">
                 <ion-icon name="hourglass-outline" style="font-size:2.5rem;display:block;margin:0 auto 12px;"></ion-icon>
@@ -22,24 +22,24 @@ export async function render(container, app) {
         </div>
     `;
 
-    // Fetch analytics data from the API
-    try {
-        analyticsData = await api.get('/admin/analytics');
-    } catch (err) {
-        console.error('Failed to load analytics from API:', err);
-        analyticsData = {
-            kpis: { placementRate: 0, avgLpa: 0, highestLpa: 0, applications: 0 },
-            salaryDistribution: [0, 0, 0, 0],
-            departmentPlacement: [0, 0, 0],
-            monthlyApplications: [],
-            monthlyOffers: [],
-            monthLabels: [],
-            departments: [],
-            insights: ['Analytics data could not be loaded.']
-        };
-    }
+  // Fetch analytics data from the API
+  try {
+    analyticsData = await api.get("/admin/analytics");
+  } catch (err) {
+    console.error("Failed to load analytics from API:", err);
+    analyticsData = {
+      kpis: { placementRate: 0, avgLpa: 0, highestLpa: 0, applications: 0 },
+      salaryDistribution: [0, 0, 0, 0],
+      departmentPlacement: [0, 0, 0],
+      monthlyApplications: [],
+      monthlyOffers: [],
+      monthLabels: [],
+      departments: [],
+      insights: ["Analytics data could not be loaded."],
+    };
+  }
 
-    container.innerHTML = `
+  container.innerHTML = `
         <div class="admin-dashboard-shell">
             <div class="admin-dashboard-header">
                 <div>
@@ -115,132 +115,235 @@ export async function render(container, app) {
         </div>
     `;
 
-    updateAnalyticsView();
+  updateAnalyticsView();
 }
 
 function updateAnalyticsView() {
-    if (!analyticsData) return;
+  if (!analyticsData) return;
 
-    setText('kpi-placement-rate', `${analyticsData.kpis.placementRate.toFixed(1)}%`);
-    setText('kpi-avg-lpa', `₹${analyticsData.kpis.avgLpa.toFixed(1)} LPA`);
-    setText('kpi-highest-lpa', `₹${analyticsData.kpis.highestLpa.toFixed(1)} LPA`);
-    setText('kpi-applications', formatNumber(analyticsData.kpis.applications));
+  setText(
+    "kpi-placement-rate",
+    `${analyticsData.kpis.placementRate.toFixed(1)}%`,
+  );
+  setText("kpi-avg-lpa", `₹${analyticsData.kpis.avgLpa.toFixed(1)} LPA`);
+  setText(
+    "kpi-highest-lpa",
+    `₹${analyticsData.kpis.highestLpa.toFixed(1)} LPA`,
+  );
+  setText("kpi-applications", formatNumber(analyticsData.kpis.applications));
 
-    renderDepartmentTable(analyticsData.departments);
-    renderInsights(analyticsData.insights);
-    renderCharts(analyticsData);
+  renderDepartmentTable(analyticsData.departments);
+  renderInsights(analyticsData.insights);
+  renderCharts(analyticsData);
 }
 
 function renderInsights(insights) {
-    const list = document.getElementById('analytics-insights');
-    if (!list) return;
-    list.innerHTML = insights.map((point) => `<li>${point}</li>`).join('');
+  const list = document.getElementById("analytics-insights");
+  if (!list) return;
+  list.innerHTML = insights.map((point) => `<li>${point}</li>`).join("");
 }
 
 function renderDepartmentTable(rows) {
-    const tbody = document.getElementById('analytics-dept-table');
-    if (!tbody) return;
+  const tbody = document.getElementById("analytics-dept-table");
+  if (!tbody) return;
 
-    tbody.innerHTML = rows.map((row) => `
+  tbody.innerHTML = rows
+    .map(
+      (row) => `
         <tr>
             <td>${row.name}</td>
             <td>${row.placementPct}%</td>
             <td>${row.avgLpa.toFixed(1)}</td>
         </tr>
-    `).join('');
+    `,
+    )
+    .join("");
 }
 
 function renderCharts(data) {
-    destroyCharts();
+  destroyCharts();
 
-    const salaryCanvas = document.getElementById('salaryChart');
-    if (salaryCanvas) {
-        analyticsState.charts.salary = new Chart(salaryCanvas, {
-            type: 'doughnut',
-            data: {
-                labels: ['< 5 LPA', '5-10 LPA', '10-20 LPA', '> 20 LPA'],
-                datasets: [{
-                    data: data.salaryDistribution,
-                    backgroundColor: ['#94a3b8', '#1B3A6B', '#F5A623', '#10b981'],
-                    borderWidth: 0
-                }]
+  const salaryCanvas = document.getElementById("salaryChart");
+  if (salaryCanvas) {
+    analyticsState.charts.salary = new Chart(salaryCanvas, {
+      type: "doughnut",
+      data: {
+        labels: ["< 5 LPA", "5-10 LPA", "10-20 LPA", "> 20 LPA"],
+        datasets: [
+          {
+            data: data.salaryDistribution,
+            backgroundColor: ["#7B8CA5", "#1B3A6B", "#F5A623", "#10b981"],
+            borderColor: "#ffffff",
+            borderWidth: 3,
+            hoverBorderWidth: 3,
+            hoverOffset: 8,
+          },
+        ],
+      },
+      options: {
+        cutout: "52%",
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              usePointStyle: true,
+              padding: 16,
+              font: { weight: "600", size: 12 },
+              color: "#1e293b",
             },
-            options: {
-                cutout: '52%',
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    }
+          },
+          tooltip: {
+            backgroundColor: "#1B3A6B",
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { size: 13, weight: "700" },
+            bodyFont: { size: 13 },
+            titleColor: "#ffffff",
+            bodyColor: "#ffffff",
+          },
+        },
+      },
+    });
+  }
 
-    const deptCanvas = document.getElementById('pieChart');
-    if (deptCanvas) {
-        const deptLabels = data.departments.slice(0, 5).map(d => d.name);
-        const deptValues = data.departments.slice(0, 5).map(d => d.placementPct);
-        const deptColors = ['#1B3A6B', '#355C91', '#7B8CA5', '#F5A623', '#10b981'];
+  const deptCanvas = document.getElementById("pieChart");
+  if (deptCanvas) {
+    const deptLabels = data.departments.slice(0, 5).map((d) => d.name);
+    const deptValues = data.departments.slice(0, 5).map((d) => d.placementPct);
+    const deptColors = ["#1B3A6B", "#355C91", "#7B8CA5", "#F5A623", "#10b981"];
 
-        analyticsState.charts.dept = new Chart(deptCanvas, {
-            type: 'pie',
-            data: {
-                labels: deptLabels,
-                datasets: [{
-                    data: deptValues,
-                    backgroundColor: deptColors.slice(0, deptLabels.length)
-                }]
+    analyticsState.charts.dept = new Chart(deptCanvas, {
+      type: "pie",
+      data: {
+        labels: deptLabels,
+        datasets: [
+          {
+            data: deptValues,
+            backgroundColor: deptColors.slice(0, deptLabels.length),
+            borderColor: "#ffffff",
+            borderWidth: 3,
+            hoverBorderWidth: 3,
+            hoverOffset: 8,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              usePointStyle: true,
+              padding: 16,
+              font: { weight: "600", size: 12 },
+              color: "#1e293b",
             },
-            options: {
-                plugins: { legend: { position: 'bottom' } }
-            }
-        });
-    }
+          },
+          tooltip: {
+            backgroundColor: "#1B3A6B",
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { size: 13, weight: "700" },
+            bodyFont: { size: 13 },
+            titleColor: "#ffffff",
+            bodyColor: "#ffffff",
+          },
+        },
+      },
+    });
+  }
 
-    const trendCanvas = document.getElementById('trendChart');
-    if (trendCanvas && data.monthLabels && data.monthLabels.length > 0) {
-        analyticsState.charts.trend = new Chart(trendCanvas, {
-            type: 'line',
-            data: {
-                labels: data.monthLabels,
-                datasets: [
-                    {
-                        label: 'Applications',
-                        data: data.monthlyApplications,
-                        borderColor: '#1B3A6B',
-                        backgroundColor: 'rgba(27, 58, 107, 0.1)',
-                        fill: true,
-                        tension: 0.35
-                    },
-                    {
-                        label: 'Offers',
-                        data: data.monthlyOffers,
-                        borderColor: '#F5A623',
-                        backgroundColor: 'rgba(245, 166, 35, 0.08)',
-                        fill: true,
-                        tension: 0.35
-                    }
-                ]
+  const trendCanvas = document.getElementById("trendChart");
+  if (trendCanvas && data.monthLabels && data.monthLabels.length > 0) {
+    analyticsState.charts.trend = new Chart(trendCanvas, {
+      type: "line",
+      data: {
+        labels: data.monthLabels,
+        datasets: [
+          {
+            label: "Applications",
+            data: data.monthlyApplications,
+            borderColor: "#1B3A6B",
+            backgroundColor: "rgba(27, 58, 107, 0.08)",
+            fill: true,
+            tension: 0.35,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointBackgroundColor: "#1B3A6B",
+            pointBorderColor: "#ffffff",
+            pointBorderWidth: 2,
+            hoverPointRadius: 7,
+          },
+          {
+            label: "Offers",
+            data: data.monthlyOffers,
+            borderColor: "#F5A623",
+            backgroundColor: "rgba(245, 166, 35, 0.08)",
+            fill: true,
+            tension: 0.35,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointBackgroundColor: "#F5A623",
+            pointBorderColor: "#ffffff",
+            pointBorderWidth: 2,
+            hoverPointRadius: 7,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        interaction: { intersect: false, mode: "index" },
+        plugins: {
+          legend: {
+            position: "top",
+            align: "end",
+            labels: {
+              usePointStyle: true,
+              padding: 16,
+              font: { weight: "600", size: 12 },
+              color: "#1e293b",
             },
-            options: {
-                plugins: { legend: { position: 'top', align: 'end' } },
-                scales: {
-                    y: { grid: { color: '#edf2f7' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    }
+          },
+          tooltip: {
+            backgroundColor: "#0f2f61",
+            padding: 12,
+            cornerRadius: 8,
+            titleFont: { size: 13, weight: "700" },
+            bodyFont: { size: 13 },
+            titleColor: "#ffffff",
+            bodyColor: "#ffffff",
+          },
+        },
+        scales: {
+          y: {
+            grid: { color: "#edf2f7", drawBorder: false },
+            ticks: { color: "#64748b", font: { weight: "500" } },
+            border: { display: false },
+          },
+          x: {
+            grid: { display: false, drawBorder: false },
+            ticks: { color: "#64748b", font: { weight: "500" } },
+            border: { display: false },
+          },
+        },
+      },
+    });
+  }
 }
 
 function destroyCharts() {
-    Object.values(analyticsState.charts).forEach((chart) => chart?.destroy());
-    analyticsState.charts.salary = null;
-    analyticsState.charts.dept = null;
-    analyticsState.charts.trend = null;
+  Object.values(analyticsState.charts).forEach((chart) => chart?.destroy());
+  analyticsState.charts.salary = null;
+  analyticsState.charts.dept = null;
+  analyticsState.charts.trend = null;
 }
 
 function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
 }
 
 function formatNumber(value) {
-    return new Intl.NumberFormat('en-IN').format(value);
+  return new Intl.NumberFormat("en-IN").format(value);
 }

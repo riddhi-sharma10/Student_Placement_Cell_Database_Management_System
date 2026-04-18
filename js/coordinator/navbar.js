@@ -33,12 +33,12 @@ export const Navbar = {
 
         // Notification Click
         document.getElementById('nav-notifications')?.addEventListener('click', () => {
-            // Future module
+            (app || window.App).navigateTo('notifications');
         });
 
         // Messages Click
         document.getElementById('nav-messages')?.addEventListener('click', () => {
-            // Future module
+            (app || window.App).navigateTo('messages');
         });
 
         // Profile Click
