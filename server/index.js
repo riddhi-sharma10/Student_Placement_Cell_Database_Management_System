@@ -27,6 +27,7 @@ import proceduresRouter from './routes/procedures.js';
 import jobsRouter from './routes/jobs.js';
 import adminRouter from './routes/admin.js';
 import resumesRouter from './routes/resumes.js';
+import coordinatorRouter from './routes/coordinator.js';
 
 // REGISTER ROUTES
 // Any request to /api/auth/* → goes to auth.js
@@ -42,6 +43,7 @@ app.use('/api/procedures', proceduresRouter);
 app.use('/api/jobs', jobsRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/resumes', resumesRouter);
+app.use('/api/coordinator', coordinatorRouter);
 
 // Health check (open this in browser to test: http://localhost:3001/api/health)
 app.get('/api/health', (req, res) => {

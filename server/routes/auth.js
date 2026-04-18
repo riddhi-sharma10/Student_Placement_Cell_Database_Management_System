@@ -39,7 +39,10 @@ router.post('/login', async (req, res) => {
         if (user.role === 'student' && user.entity_id) {
             const [details] = await pool.query('SELECT s_name FROM STUDENT WHERE s_id = ?', [user.entity_id]);
             if (details.length > 0) displayName = details[0].s_name;
-        } else if ((user.role === 'coordinator' || user.role === 'admin') && user.entity_id) {
+        } else if (user.role === 'coordinator' && user.entity_id) {
+            const [details] = await pool.query('SELECT name FROM PLACEMENT_COORDINATOR WHERE coord_id = ?', [user.entity_id]);
+            if (details.length > 0) displayName = details[0].name;
+        } else if (user.role === 'admin' && user.entity_id) {
             const [details] = await pool.query('SELECT name FROM CGDC_ADMIN WHERE cgdc_id = ?', [user.entity_id]);
             if (details.length > 0) displayName = details[0].name;
         }

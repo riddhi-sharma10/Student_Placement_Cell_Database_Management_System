@@ -1,336 +1,164 @@
-// js/coordinator/applications.js — PAGE 4: APPLICATIONS
+import { api } from '../api.js';
 
-import { allApplications as baseApps, students } from './data.js';
+let all = [], filtered = [], searchQ = '', statusF = 'all';
 
-// Work on a mutable copy
-let applications = baseApps.map(a => ({ ...a }));
-
-let searchQuery = '';
-let filterStatus  = 'All';
-let filterCompany = 'All';
-let dateFrom      = '';
-let dateTo        = '';
-let sortCol       = 'appliedDate';
-let sortDir       = 'desc';
-let selectedRows  = new Set();
-
-const STATUSES  = ['All','Applied','Shortlisted','Interview','Selected','Rejected'];
-const COMPANIES = ['All', ...new Set(baseApps.map(a => a.company))];
-
-export function render(container, app) {
-  renderPage(container);
+export async function render(container, app) {
+    container.innerHTML = loadingHTML('Applications');
+    try {
+        all = await api.get('/coordinator/applications');
+        console.log('[applications] count:', all.length, all[0]);
+        filtered = [...all];
+        renderShell(container);
+    } catch (err) {
+        console.error('[applications] error:', err);
+        container.innerHTML = errorHTML(err.message);
+    }
 }
 
-function renderPage(container) {
-  const filtered = getFiltered();
+function renderShell(container) {
+    const counts = {
+        all: all.length,
+        applied: all.filter(a => a.status === 'applied').length,
+        shortlisted: all.filter(a => a.status === 'shortlisted').length,
+        selected: all.filter(a => a.status === 'selected').length,
+        rejected: all.filter(a => a.status === 'rejected').length,
+        under_review: all.filter(a => a.status === 'under_review').length
+    };
 
-  const totals = {
-    total:       filtered.length,
-    shortlisted: filtered.filter(a => a.status === 'Shortlisted').length,
-    interview:   filtered.filter(a => a.status === 'Interview').length,
-    selected:    filtered.filter(a => a.status === 'Selected').length,
-    rejected:    filtered.filter(a => a.status === 'Rejected').length,
-  };
+    container.innerHTML = `
+        <div class="admin-dashboard-shell">
+            <div class="admin-dashboard-header">
+                <div>
+                    <h1>Applications</h1>
+                    <p>${all.length} total applications from your students</p>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <input id="app-search" type="text" placeholder="Search student, company or role..."
+                        value="${searchQ}"
+                        style="padding:9px 16px;border:1px solid #e2e8f0;border-radius:8px;width:280px;font-size:0.9rem;outline:none;">
+                    <div style="position:relative;">
+                        <button id="app-filter-btn" class="admin-user-action">
+                            <ion-icon name="funnel-outline"></ion-icon> Filter
+                        </button>
+                        <div id="app-filter-panel" class="admin-filter-panel hidden"
+                             style="position:absolute;right:0;top:calc(100%+8px);z-index:200;background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;width:200px;box-shadow:0 8px 24px rgba(0,0,0,0.1);">
+                            <label style="font-size:0.75rem;font-weight:700;color:var(--text-muted);display:block;margin-bottom:8px;">STATUS</label>
+                            <select id="app-status-sel" style="width:100%;padding:8px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:12px;">
+                                <option value="all"         ${statusF==='all'?'selected':''}>All (${counts.all})</option>
+                                <option value="applied"     ${statusF==='applied'?'selected':''}>Applied (${counts.applied})</option>
+                                <option value="under_review"${statusF==='under_review'?'selected':''}>Under Review (${counts.under_review})</option>
+                                <option value="shortlisted" ${statusF==='shortlisted'?'selected':''}>Shortlisted (${counts.shortlisted})</option>
+                                <option value="selected"    ${statusF==='selected'?'selected':''}>Selected (${counts.selected})</option>
+                                <option value="rejected"    ${statusF==='rejected'?'selected':''}>Rejected (${counts.rejected})</option>
+                            </select>
+                            <button id="app-apply-filter" class="btn-primary" style="width:100%;padding:8px;border-radius:6px;">Apply</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-  // clear orphan selections
-  filtered.forEach(a => { if (!filtered.find(x => x.id === a.id)) selectedRows.delete(a.id); });
+            <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
+                <span class="tag tag-info"    style="padding:6px 14px;">Applied: <b>${counts.applied}</b></span>
+                <span class="tag tag-warning" style="padding:6px 14px;">Under Review: <b>${counts.under_review}</b></span>
+                <span class="tag tag-info"    style="padding:6px 14px;">Shortlisted: <b>${counts.shortlisted}</b></span>
+                <span class="tag tag-success" style="padding:6px 14px;">Selected: <b>${counts.selected}</b></span>
+                <span class="tag tag-danger"  style="padding:6px 14px;">Rejected: <b>${counts.rejected}</b></span>
+            </div>
 
-  container.innerHTML = `
-    <div class="coord-page-header">
-      <div>
-        <h1 class="coord-page-title">Applications</h1>
-        <p class="coord-page-sub">Track and manage all applications for your 10 assigned students</p>
-      </div>
-      <button class="coord-export-btn" id="export-csv-btn">
-        <ion-icon name="download-outline"></ion-icon> Export CSV
-      </button>
-    </div>
-
-    <!-- Summary Strip -->
-    <div class="coord-summary-strip">
-      ${renderChip('Total',       totals.total,       'All',         filterStatus === 'All')}
-      ${renderChip('Shortlisted', totals.shortlisted,  'Shortlisted', filterStatus === 'Shortlisted')}
-      ${renderChip('Interviews',  totals.interview,    'Interview',   filterStatus === 'Interview')}
-      ${renderChip('Selected',    totals.selected,     'Selected',    filterStatus === 'Selected')}
-      ${renderChip('Rejected',    totals.rejected,     'Rejected',    filterStatus === 'Rejected')}
-    </div>
-
-    <!-- Filter Bar (Redesigned) -->
-    <div class="card" style="padding: 20px; border-radius: 14px; margin-bottom: 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; box-shadow: 0 2px 10px rgba(0,0,0,0.02);">
-      <div style="flex: 1; min-width: 250px; position: relative;">
-        <ion-icon name="search-outline" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1.1rem;"></ion-icon>
-        <input id="app-search" type="text" placeholder="Search by student name, role or company..." value="${escapeHtml(searchQuery)}" style="width: 100%; padding: 12px 16px 12px 44px; border: 1px solid var(--border); border-radius: 10px; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s; background: #f8fafc;">
-      </div>
-      
-      <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-        <select id="app-status" style="padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; outline: none; font-family: inherit; font-size: 0.9rem; min-width: 140px; background: white; cursor: pointer;">
-          ${STATUSES.map(s => `<option value="${s}" ${filterStatus === s ? 'selected':''}>${s}</option>`).join('')}
-        </select>
-        
-        <select id="app-company" style="padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; outline: none; font-family: inherit; font-size: 0.9rem; min-width: 140px; background: white; cursor: pointer;">
-          ${COMPANIES.map(c => `<option value="${c}" ${filterCompany === c ? 'selected':''}>${c}</option>`).join('')}
-        </select>
-        
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <input id="app-date-from" type="date" value="${dateFrom}" style="padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px; outline: none; font-family: inherit; font-size: 0.85rem; background: white;">
-          <span style="color: #94a3b8; font-size: 0.8rem;">to</span>
-          <input id="app-date-to" type="date" value="${dateTo}" style="padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px; outline: none; font-family: inherit; font-size: 0.85rem; background: white;">
+            <div class="card">
+                <div class="data-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Dept</th>
+                                <th>Company</th>
+                                <th>Role</th>
+                                <th>Package (LPA)</th>
+                                <th>ATS Score</th>
+                                <th>Applied On</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="app-tbody">${appRows()}</tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-
-        <button id="app-reset" style="padding: 12px 18px; background: #f1f5f9; color: #475569; border: none; border-radius: 10px; font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 6px; cursor: pointer; transition: background 0.2s;">
-          <ion-icon name="refresh-outline"></ion-icon> Reset
-        </button>
-      </div>
-    </div>
-
-    <!-- Bulk Actions (visible when rows selected) -->
-    <div class="coord-bulk-bar ${selectedRows.size > 0 ? '' : 'hidden'}" id="bulk-bar">
-      <span><b>${selectedRows.size}</b> row(s) selected</span>
-      <div class="coord-bulk-actions">
-        <select id="bulk-status-select" class="coord-select" style="min-width:160px">
-          <option value="">— Set Status —</option>
-          ${['Applied','Shortlisted','Interview','Selected','Rejected'].map(s =>
-            `<option value="${s}">${s}</option>`).join('')}
-        </select>
-        <button class="btn-primary" id="bulk-apply-btn" style="padding:8px 16px">Apply</button>
-        <button class="coord-reset-btn" id="bulk-clear-btn">Clear</button>
-      </div>
-    </div>
-
-    <!-- Table -->
-    <div class="card" style="overflow:hidden">
-      <div class="data-table-container">
-        <table class="coord-table">
-          <thead>
-            <tr>
-              <th style="width:40px"><input type="checkbox" id="select-all-chk"></th>
-              ${renderTh('Student',     'studentName')}
-              ${renderTh('Company',     'company')}
-              ${renderTh('Role',        'role')}
-              ${renderTh('Applied Date','appliedDate')}
-              ${renderTh('ATS Score',   'atsScore')}
-              <th>Status</th>
-              <th>Update</th>
-            </tr>
-          </thead>
-          <tbody id="app-table-body">
-            ${filtered.map(a => renderAppRow(a)).join('')}
-            ${filtered.length === 0 ? `
-              <tr><td colspan="8" style="text-align:center;padding:40px;color:#94a3b8">
-                No applications match the current filters
-              </td></tr>
-            ` : ''}
-          </tbody>
-        </table>
-      </div>
-      <div class="coord-table-footer">
-        Showing <b>${filtered.length}</b> of <b>${applications.length}</b> applications
-      </div>
-    </div>
-  `;
-
-  attachEvents(container, filtered);
+    `;
+    wireEvents(container);
 }
 
-function renderTh(label, col) {
-  const active = sortCol === col;
-  const arrow  = active ? (sortDir === 'asc' ? '↑' : '↓') : '';
-  return `<th class="coord-sortable ${active ? 'sort-active' : ''}" data-col="${col}">${label} ${arrow}</th>`;
+function appRows() {
+    if (!filtered.length) return `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">No applications found.</td></tr>`;
+    return filtered.map(a => `
+        <tr>
+            <td><b>${a.studentName || '—'}</b></td>
+            <td style="color:var(--text-muted);font-size:0.85rem;">${a.dept || '—'}</td>
+            <td>${a.company || '—'}</td>
+            <td style="font-size:0.9rem;">${a.role || '—'}</td>
+            <td style="color:var(--success);font-weight:700;">${a.packageLpa ? '₹' + Number(a.packageLpa).toFixed(1) : '—'}</td>
+            <td>${a.atsScore != null
+                ? `<span class="tag ${Number(a.atsScore) >= 70 ? 'tag-success' : Number(a.atsScore) >= 50 ? 'tag-warning' : 'tag-danger'}">${Number(a.atsScore).toFixed(0)}%</span>`
+                : '<span style="color:var(--text-muted);">—</span>'}</td>
+            <td style="font-size:0.85rem;color:var(--text-muted);">${a.appliedDate || '—'}</td>
+            <td><span class="tag ${statusTag(a.status)}">${String(a.status || '').replace('_',' ').toUpperCase()}</span></td>
+        </tr>
+    `).join('');
 }
 
-function renderChip(label, count, filter, active) {
-  return `
-    <button class="coord-summary-chip ${active ? 'active' : ''}" data-filter="${filter}">
-      <span class="coord-chip-num">${count}</span>
-      <span class="coord-chip-label">${label}</span>
-    </button>
-  `;
+function statusTag(s) {
+    if (s === 'selected')    return 'tag-success';
+    if (s === 'rejected')    return 'tag-danger';
+    if (s === 'shortlisted' || s === 'under_review') return 'tag-info';
+    return 'tag-warning';
 }
 
-function renderAppRow(a) {
-  const checked = selectedRows.has(a.id) ? 'checked' : '';
-  return `
-    <tr class="coord-table-row ${selectedRows.has(a.id) ? 'row-selected' : ''}" data-app-id="${a.id}">
-      <td><input type="checkbox" class="row-chk" data-app-id="${a.id}" ${checked}></td>
-      <td>
-        <div class="coord-student-cell">
-          <div class="coord-avatar-sm" style="background:${stuAvatarBg(a.studentId)}">${stuAvatar(a.studentId)}</div>
-          <div>
-            <b>${a.studentName}</b>
-            <div class="coord-muted" style="font-size:0.75rem">CGPA ${a.studentCGPA}</div>
-          </div>
-        </div>
-      </td>
-      <td><b>${a.company}</b></td>
-      <td class="coord-muted">${a.role}</td>
-      <td class="coord-muted">${a.appliedDate}</td>
-      <td>
-        <span class="coord-ats ${a.atsScore >= 85 ? 'high' : a.atsScore >= 70 ? 'mid' : 'low'}">${a.atsScore}</span>
-      </td>
-      <td>${statusBadge(a.status)}</td>
-      <td>
-        <select class="coord-status-update" data-app-id="${a.id}">
-          ${['Applied','Shortlisted','Interview','Selected','Rejected'].map(s =>
-            `<option value="${s}" ${a.status === s ? 'selected' : ''}>${s}</option>`
-          ).join('')}
-        </select>
-      </td>
-    </tr>
-  `;
-}
+function wireEvents(container) {
+    const searchInp   = container.querySelector('#app-search');
+    const filterBtn   = container.querySelector('#app-filter-btn');
+    const filterPanel = container.querySelector('#app-filter-panel');
+    const applyBtn    = container.querySelector('#app-apply-filter');
 
-function attachEvents(container, filtered) {
-  // Summary chips
-  container.querySelectorAll('.coord-summary-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      filterStatus = chip.dataset.filter;
-      renderPage(container);
+    searchInp?.addEventListener('input', e => {
+        searchQ = e.target.value.toLowerCase();
+        applyFilters();
+        const tb = document.getElementById('app-tbody');
+        if (tb) tb.innerHTML = appRows();
     });
-  });
-
-  // Filters
-  container.querySelector('#app-search').addEventListener('input', e => {
-    searchQuery = e.target.value; renderPage(container);
-  });
-  container.querySelector('#app-status').addEventListener('change', e => {
-    filterStatus = e.target.value; renderPage(container);
-  });
-  container.querySelector('#app-company').addEventListener('change', e => {
-    filterCompany = e.target.value; renderPage(container);
-  });
-  container.querySelector('#app-date-from').addEventListener('input', e => {
-    dateFrom = e.target.value; renderPage(container);
-  });
-  container.querySelector('#app-date-to').addEventListener('input', e => {
-    dateTo = e.target.value; renderPage(container);
-  });
-  container.querySelector('#app-reset').addEventListener('click', () => {
-    searchQuery = ''; filterStatus = 'All'; filterCompany = 'All'; dateFrom = ''; dateTo = '';
-    selectedRows.clear(); renderPage(container);
-  });
-
-  // Sortable columns
-  container.querySelectorAll('.coord-sortable').forEach(th => {
-    th.style.cursor = 'pointer';
-    th.addEventListener('click', () => {
-      const col = th.dataset.col;
-      if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-      else { sortCol = col; sortDir = 'asc'; }
-      renderPage(container);
+    filterBtn?.addEventListener('click', () => filterPanel?.classList.toggle('hidden'));
+    applyBtn?.addEventListener('click', () => {
+        statusF = container.querySelector('#app-status-sel')?.value || 'all';
+        filterPanel?.classList.add('hidden');
+        applyFilters();
+        const tb = document.getElementById('app-tbody');
+        if (tb) tb.innerHTML = appRows();
     });
-  });
-
-  // Select all
-  const selectAll = container.querySelector('#select-all-chk');
-  selectAll.addEventListener('change', () => {
-    if (selectAll.checked) filtered.forEach(a => selectedRows.add(a.id));
-    else filtered.forEach(a => selectedRows.delete(a.id));
-    renderPage(container);
-  });
-
-  // Row checkboxes
-  container.querySelectorAll('.row-chk').forEach(chk => {
-    chk.addEventListener('change', () => {
-      const id = parseInt(chk.dataset.appId);
-      if (chk.checked) selectedRows.add(id);
-      else selectedRows.delete(id);
-      renderPage(container);
+    document.addEventListener('click', e => {
+        if (!filterPanel?.contains(e.target) && !filterBtn?.contains(e.target))
+            filterPanel?.classList.add('hidden');
     });
-  });
+}
 
-  // Inline status update
-  container.querySelectorAll('.coord-status-update').forEach(sel => {
-    sel.addEventListener('change', e => {
-      const id = parseInt(sel.dataset.appId);
-      const app = applications.find(a => a.id === id);
-      if (app) app.status = e.target.value;
-      renderPage(container);
+function applyFilters() {
+    filtered = all.filter(a => {
+        const sm = !searchQ ||
+            (a.studentName || '').toLowerCase().includes(searchQ) ||
+            (a.company || '').toLowerCase().includes(searchQ) ||
+            (a.role || '').toLowerCase().includes(searchQ);
+        const fm = statusF === 'all' || a.status === statusF;
+        return sm && fm;
     });
-  });
-
-  // Bulk bar
-  const bulkApply = container.querySelector('#bulk-apply-btn');
-  const bulkClear = container.querySelector('#bulk-clear-btn');
-  const bulkSel   = container.querySelector('#bulk-status-select');
-
-  if (bulkApply) {
-    bulkApply.addEventListener('click', () => {
-      const newStatus = bulkSel?.value;
-      if (!newStatus) return;
-      selectedRows.forEach(id => {
-        const app = applications.find(a => a.id === id);
-        if (app) app.status = newStatus;
-      });
-      selectedRows.clear();
-      renderPage(container);
-    });
-  }
-  if (bulkClear) {
-    bulkClear.addEventListener('click', () => {
-      selectedRows.clear(); renderPage(container);
-    });
-  }
-
-  // Export CSV
-  container.querySelector('#export-csv-btn').addEventListener('click', () => exportCSV(filtered));
 }
 
-function getFiltered() {
-  return applications.filter(a => {
-    const q = searchQuery.toLowerCase();
-    const searchMatch = !q || a.studentName.toLowerCase().includes(q) || a.role.toLowerCase().includes(q) || a.company.toLowerCase().includes(q);
-    const statusOk  = filterStatus === 'All' || a.status === filterStatus;
-    const companyOk = filterCompany === 'All' || a.company === filterCompany;
-    const fromOk    = !dateFrom || parseDate(a.appliedDate) >= new Date(dateFrom);
-    const toOk      = !dateTo   || parseDate(a.appliedDate) <= new Date(dateTo);
-    return searchMatch && statusOk && companyOk && fromOk && toOk;
-  }).sort((a, b) => {
-    let av = a[sortCol], bv = b[sortCol];
-    if (sortCol === 'atsScore' || sortCol === 'studentCGPA') { av = +av; bv = +bv; }
-    if (sortCol === 'appliedDate') { av = parseDate(av); bv = parseDate(bv); }
-    if (av < bv) return sortDir === 'asc' ? -1 : 1;
-    if (av > bv) return sortDir === 'asc' ? 1 : -1;
-    return 0;
-  });
+function loadingHTML(p) {
+    return `<div style="display:flex;align-items:center;justify-content:center;height:400px;flex-direction:column;gap:12px;color:var(--text-muted);">
+        <ion-icon name="sync-outline" style="font-size:2.5rem;animation:spin 1s linear infinite;"></ion-icon>
+        <p>Loading ${p}...</p></div>`;
 }
-
-function parseDate(str) {
-  const months = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
-  const parts = str.split(' ');
-  if (parts.length === 3) return new Date(parseInt(parts[2]), months[parts[0]], parseInt(parts[1]));
-  return new Date(str);
-}
-
-function statusBadge(status) {
-  const map = {
-    'Selected':    '<span class="tag tag-success" style="border-radius:20px; padding:4px 12px; font-weight:600">Selected</span>',
-    'Interview':   '<span class="tag tag-warning" style="border-radius:20px; padding:4px 12px; font-weight:600">Interview</span>',
-    'Shortlisted': '<span class="tag tag-info" style="border-radius:20px; padding:4px 12px; font-weight:600">Shortlisted</span>',
-    'Applied':     '<span class="tag" style="background:#f1f5f9;color:#475569; border-radius:20px; padding:4px 12px; font-weight:600">Applied</span>',
-    'Rejected':    '<span class="tag tag-danger" style="border-radius:20px; padding:4px 12px; font-weight:600">Rejected</span>',
-  };
-  return map[status] || `<span class="tag" style="border-radius:20px; padding:4px 12px; font-weight:600">${status}</span>`;
-}
-
-function escapeHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function exportCSV(rows) {
-  const headers = ['Student','Company','Role','Applied Date','ATS Score','Status'];
-  const csv = [headers, ...rows.map(a => [
-    a.studentName, a.company, a.role, a.appliedDate, a.atsScore, a.status
-  ])].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url  = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url; link.download = 'applications_export.csv'; link.click();
-  URL.revokeObjectURL(url);
-}
-
-const palette = ['#1B3A6B','#2c5282','#10b981','#F5A623','#7c3aed','#ef4444','#0284c7','#f59e0b','#059669','#dc2626'];
-const stuAvatarBg = id => palette[(id - 1) % palette.length];
-function stuAvatar(id) {
-  const stu = students.find(s => s.id === id);
-  return stu ? stu.avatar : '?';
+function errorHTML(msg) {
+    return `<div style="padding:40px;text-align:center;">
+        <ion-icon name="alert-circle-outline" style="font-size:3rem;color:#ef4444;"></ion-icon>
+        <h2 style="margin-top:16px;">Error loading applications</h2>
+        <p style="color:var(--text-muted);margin-top:8px;">${msg}</p></div>`;
 }

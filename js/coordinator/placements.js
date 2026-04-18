@@ -1,112 +1,100 @@
-// js/coordinator/placements.js — API Version
 import { api } from '../api.js';
 
-let filterStatus = "All";
-let searchQuery = "";
-let allStudents = [];
-
 export async function render(container, app) {
-    container.innerHTML = `<div style="padding:24px;"><h2>Syncing with Database...</h2></div>`;
-
+    container.innerHTML = loadingHTML('Placements');
     try {
-        // Fetch students with their application counts
-        const data = await api.get('/analytics/students-with-applications');
-        allStudents = data.rows;
-        updatePlacementsDisplay(container);
+        const rows = await api.get('/coordinator/placements');
+        console.log('[placements] count:', rows.length, rows[0]);
+        renderShell(container, rows);
     } catch (err) {
-        container.innerHTML = `<div class="card" style="padding:40px; text-align:center;">
-            <h2 style="color:#ef4444;">Sync Failed</h2>
-            <p>${err.message}</p>
-        </div>`;
+        console.error('[placements] error:', err);
+        container.innerHTML = errorHTML(err.message);
     }
-
-    // Event listeners
-    setTimeout(() => {
-        const statusSelect = container.querySelector("#filterStatus");
-        const searchInput = container.querySelector("#searchStudent");
-
-        if (statusSelect) {
-            statusSelect.addEventListener("change", (e) => {
-                filterStatus = e.target.value;
-                updatePlacementsDisplay(container);
-            });
-        }
-
-        if (searchInput) {
-            searchInput.addEventListener("input", (e) => {
-                searchQuery = e.target.value.toLowerCase();
-                updatePlacementsDisplay(container);
-            });
-        }
-    }, 0);
 }
 
-function updatePlacementsDisplay(container) {
-    const filtered = allStudents.filter(s => {
-        const searchMatch = s.student_name.toLowerCase().includes(searchQuery);
-        return searchMatch;
-    });
-
-    // Stats
-    const total = allStudents.length;
-    const placed = allStudents.filter(s => s.selected_count > 0).length;
+function renderShell(container, rows) {
+    const totalCTC = rows.reduce((s, r) => s + Number(r.ctc || 0), 0);
+    const avgCTC   = rows.length ? (totalCTC / rows.length).toFixed(2) : '0.00';
+    const maxCTC   = rows.length ? Math.max(...rows.map(r => Number(r.ctc || 0))).toFixed(2) : '0.00';
 
     container.innerHTML = `
-        <div class="dashboard-header" style="margin-bottom: 32px;">
-            <h1 style="font-size: 2rem; color: var(--primary);">Placement Analytics</h1>
-            <p style="color: var(--text-muted);">Real-time tracking of applications and offers from the server.</p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 32px;">
-            <div class="card" style="padding: 24px; text-align: center;">
-                <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Database Records</label>
-                <div style="font-size: 3rem; font-weight: 800; color: var(--primary); margin-top: 8px;">${total}</div>
-                <p style="color: var(--text-muted);">Total students tracked</p>
+        <div class="admin-dashboard-shell">
+            <div class="admin-dashboard-header">
+                <div>
+                    <h1>Placements</h1>
+                    <p>${rows.length} confirmed placement${rows.length !== 1 ? 's' : ''} (accepted offers)</p>
+                </div>
             </div>
-            <div class="card" style="padding: 24px; text-align: center;">
-                <label style="font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700;">Verified Placements</label>
-                <div style="font-size: 3rem; font-weight: 800; color: var(--success); margin-top: 8px;">${placed}</div>
-                <p style="color: var(--text-muted);">${((placed/total)*100).toFixed(1)}% Success Rate</p>
-            </div>
-        </div>
 
-        <div class="card" style="margin-bottom: 24px;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <input id="searchStudent" type="text" placeholder="Search by student name..." style="width:100%; padding:14px; border:1px solid var(--border); border-radius:10px;">
+            <div class="admin-stat-grid" style="margin-bottom:24px;">
+                <div class="card admin-stat-card">
+                    <div class="admin-stat-top"><div class="admin-stat-icon"><ion-icon name="trophy-outline"></ion-icon></div></div>
+                    <div class="admin-stat-meta"><p>Placed Students</p><h2>${rows.length}</h2></div>
+                </div>
+                <div class="card admin-stat-card">
+                    <div class="admin-stat-top"><div class="admin-stat-icon"><ion-icon name="trending-up-outline"></ion-icon></div></div>
+                    <div class="admin-stat-meta"><p>Avg CTC</p><h2>₹${avgCTC}</h2></div>
+                </div>
+                <div class="card admin-stat-card admin-stat-card-highlight">
+                    <div class="admin-stat-top"><div class="admin-stat-icon"><ion-icon name="star-outline"></ion-icon></div></div>
+                    <div class="admin-stat-meta"><p>Highest CTC</p><h2>₹${maxCTC}</h2></div>
+                </div>
             </div>
-        </div>
 
-        <div class="card">
-            <div class="data-table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student Name</th>
-                            <th>Roll No</th>
-                            <th style="text-align:center">CGPA</th>
-                            <th style="text-align:center">Applications</th>
-                            <th style="text-align:center">Offers</th>
-                            <th style="text-align:center">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${filtered.map(s => `
+            <div class="card">
+                <div class="data-table-container">
+                    <table>
+                        <thead>
                             <tr>
-                                <td><b>${s.student_name}</b></td>
-                                <td>${s.roll_no}</td>
-                                <td style="text-align:center">${s.cgpa}</td>
-                                <td style="text-align:center"><span class="tag tag-info">${s.total_applications}</span></td>
-                                <td style="text-align:center"><b style="color:var(--success)">${s.selected_count}</b></td>
-                                <td style="text-align:center">
-                                    <span class="tag ${s.selected_count > 0 ? 'tag-success' : 'tag-warning'}">
-                                        ${s.selected_count > 0 ? 'Placed' : 'In Progress'}
-                                    </span>
-                                </td>
+                                <th>Student</th>
+                                <th>Department</th>
+                                <th>CGPA</th>
+                                <th>Company</th>
+                                <th>Role</th>
+                                <th>CTC (LPA)</th>
+                                <th>Joining</th>
+                                <th>Record</th>
                             </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            ${rows.length ? rows.map(r => `
+                                <tr>
+                                    <td>
+                                        <div class="admin-student-cell">
+                                            <span class="admin-student-initials">${r.initials || '??'}</span>
+                                            <div>
+                                                <div style="font-weight:600;">${r.studentName || '—'}</div>
+                                                <div style="font-size:0.75rem;color:var(--text-muted);">${r.industry || ''} ${r.tier ? '· ' + r.tier : ''}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td style="font-size:0.85rem;">${r.department || '—'}</td>
+                                    <td><b>${r.cgpa || '—'}</b></td>
+                                    <td><b>${r.company || '—'}</b></td>
+                                    <td style="color:var(--text-muted);font-size:0.9rem;">${r.role || '—'}</td>
+                                    <td style="color:var(--success);font-weight:800;font-size:1rem;">₹${Number(r.ctc || 0).toFixed(2)}</td>
+                                    <td style="font-size:0.85rem;">${r.joiningDate || 'TBD'}</td>
+                                    <td><span class="tag ${r.verified ? 'tag-success' : 'tag-warning'}">${r.verified ? 'VERIFIED' : 'PENDING'}</span></td>
+                                </tr>
+                            `).join('') : `
+                                <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted);">No confirmed placements yet.</td></tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     `;
+}
+
+function loadingHTML(p) {
+    return `<div style="display:flex;align-items:center;justify-content:center;height:400px;flex-direction:column;gap:12px;color:var(--text-muted);">
+        <ion-icon name="sync-outline" style="font-size:2.5rem;animation:spin 1s linear infinite;"></ion-icon>
+        <p>Loading ${p}...</p></div>`;
+}
+function errorHTML(msg) {
+    return `<div style="padding:40px;text-align:center;">
+        <ion-icon name="alert-circle-outline" style="font-size:3rem;color:#ef4444;"></ion-icon>
+        <h2 style="margin-top:16px;">Error loading placements</h2>
+        <p style="color:var(--text-muted);margin-top:8px;">${msg}</p></div>`;
 }
