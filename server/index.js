@@ -7,14 +7,15 @@ dotenv.config();
 
 const app = express();
 
-// MIDDLEWARE (things that run before every request)
-app.use(cors({
-    origin: (origin, callback) => {
-        const allowed = !origin || /^(http:\/\/localhost:\d+|http:\/\/127\.0\.0\.1:\d+)$/.test(origin);
-        callback(null, allowed);
-    }
-}));
-app.use(express.json()); // parse incoming JSON data
+// MIDDLEWARE
+app.use(cors({ origin: true, credentials: true }));
+app.use(express.json());
+
+// Request X-Ray Logger (Prints all incoming API calls to server terminal)
+app.use((req, res, next) => {
+    console.log(`[${new Date().toLocaleTimeString()}] ${req.method} ${req.url}`);
+    next();
+});
 
 // IMPORT ROUTES (each file handles one type of data)
 import authRouter from './routes/auth.js';
@@ -52,6 +53,17 @@ app.get('/api/health', (req, res) => {
 
 // START SERVER
 const PORT = process.env.PORT || 3001;
+
+// Global Error Handler (Prevents "Unexpected token" HTML crashes)
+app.use((err, req, res, next) => {
+    console.error('SERVER CRASH:', err);
+    res.status(500).json({ 
+        status: 'error', 
+        message: err.message || 'Internal Server Error',
+        details: err.stack ? 'Check server logs for details' : undefined
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`🚀 Backend server running at http://localhost:${PORT}`);
 });
