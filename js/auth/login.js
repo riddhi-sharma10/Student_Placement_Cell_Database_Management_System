@@ -4,6 +4,8 @@ export function initLogin(app) {
     // Clear previously saved demo passwords
     localStorage.removeItem('portal_passwords');
 
+    const API_BASE = `${window.location.protocol}//${window.location.hostname}:3001/api`;
+
     const container = document.getElementById('auth-container');
     container.innerHTML = `
         <div class="login-card">
@@ -83,7 +85,7 @@ export function initLogin(app) {
         btn.disabled = true;
 
         try {
-            const response = await fetch('/api/auth/login', {
+            const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username, password, role: selectedRole })

@@ -1,27 +1,7 @@
 // js/admin/users.js
+import { api } from '../api.js';
 
-const users = [
-    { id: 1, name: 'James Sterling', username: 'j.sterling', email: 'j.sterling@university.edu', role: 'Admin', branch: '', entityId: 'ADM-2024-001', status: 'Active', permission: 'Elevated', lastLoginDays: 0 },
-    { id: 2, name: 'Ananya Rao', username: 'ananya.r', email: 'ananya.r@st.university.edu', role: 'Coordinator', branch: 'ECE', entityId: 'CO-21-4492', status: 'Active', permission: 'Elevated', lastLoginDays: 2 },
-    { id: 3, name: 'Marcus Knight', username: 'm.knight', email: 'm.knight@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-1108', status: 'Active', permission: 'Standard', lastLoginDays: 1 },
-    { id: 4, name: 'Sarah Lopez', username: 's.lopez', email: 's.lopez@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-23-0881', status: 'Inactive', permission: 'Standard', lastLoginDays: 36 },
-    { id: 5, name: 'Rohit Menon', username: 'r.menon', email: 'r.menon@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-22-1037', status: 'Active', permission: 'Standard', lastLoginDays: 3 },
-    { id: 6, name: 'Meera Iyer', username: 'meera.i', email: 'meera.i@st.university.edu', role: 'Coordinator', branch: 'CSE', entityId: 'CO-19-204', status: 'Active', permission: 'Elevated', lastLoginDays: 5 },
-    { id: 7, name: 'Harish K', username: 'harish.k', email: 'harish.k@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-21-0984', status: 'Suspended', permission: 'Restricted', lastLoginDays: 45 },
-    { id: 8, name: 'Priya Nair', username: 'priya.nair', email: 'priya.nair@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-23-0170', status: 'Active', permission: 'Standard', lastLoginDays: 0 },
-    { id: 9, name: 'Dev Sharma', username: 'd.sharma', email: 'd.sharma@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-24-0332', status: 'Pending', permission: 'Standard', lastLoginDays: 14 },
-    { id: 10, name: 'Ishita Roy', username: 'ishita.roy', email: 'ishita.roy@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-22-0787', status: 'Active', permission: 'Standard', lastLoginDays: 9 },
-    { id: 11, name: 'Aman Desai', username: 'aman.desai', email: 'aman.desai@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-1304', status: 'Active', permission: 'Standard', lastLoginDays: 1 },
-    { id: 12, name: 'Neha Kulkarni', username: 'n.kulkarni', email: 'n.kulkarni@st.university.edu', role: 'Coordinator', branch: 'ME', entityId: 'CO-20-093', status: 'Active', permission: 'Elevated', lastLoginDays: 6 },
-    { id: 13, name: 'Varun Sethi', username: 'v.sethi', email: 'v.sethi@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-23-0007', status: 'Inactive', permission: 'Standard', lastLoginDays: 33 },
-    { id: 14, name: 'Aditi Jain', username: 'aditi.jain', email: 'aditi.jain@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-23-1908', status: 'Active', permission: 'Standard', lastLoginDays: 4 },
-    { id: 15, name: 'Suman Ghosh', username: 's.ghosh', email: 's.ghosh@university.edu', role: 'Admin', branch: '', entityId: 'ADM-2024-004', status: 'Active', permission: 'Elevated', lastLoginDays: 0 },
-    { id: 16, name: 'Karan Patel', username: 'karan.p', email: 'karan.p@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-24-0258', status: 'Pending', permission: 'Standard', lastLoginDays: 17 },
-    { id: 17, name: 'Nidhi Kapoor', username: 'nidhi.k', email: 'nidhi.k@st.university.edu', role: 'Coordinator', branch: 'ECE', entityId: 'CO-20-117', status: 'Active', permission: 'Elevated', lastLoginDays: 8 },
-    { id: 18, name: 'Tobias Reed', username: 't.reed', email: 't.reed@st.university.edu', role: 'Student', branch: 'CSE', entityId: 'ST-22-0502', status: 'Active', permission: 'Standard', lastLoginDays: 11 },
-    { id: 19, name: 'Faiz Alam', username: 'f.alam', email: 'f.alam@st.university.edu', role: 'Student', branch: 'ME', entityId: 'ST-21-0702', status: 'Suspended', permission: 'Restricted', lastLoginDays: 59 },
-    { id: 20, name: 'Kriti Das', username: 'kriti.d', email: 'kriti.d@st.university.edu', role: 'Student', branch: 'ECE', entityId: 'ST-22-0038', status: 'Active', permission: 'Standard', lastLoginDays: 2 }
-];
+let users = [];
 
 const state = {
     currentPage: 1,
@@ -29,8 +9,31 @@ const state = {
     filters: getDefaultFilters()
 };
 
-export function render(container, app) {
+export async function render(container, app) {
     resetUsersState();
+
+    // Show loading state
+    container.innerHTML = `
+        <div class="admin-users-shell" style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+            <div style="text-align:center;color:var(--text-muted);">
+                <ion-icon name="hourglass-outline" style="font-size:2.5rem;display:block;margin:0 auto 12px;"></ion-icon>
+                <p>Loading user directory...</p>
+            </div>
+        </div>
+    `;
+
+    // Fetch all roles in parallel
+    try {
+        const [studentRows, coordRows, adminRows] = await Promise.all([
+            api.get('/admin/users?role=Student'),
+            api.get('/admin/users?role=Coordinator'),
+            api.get('/admin/users?role=Admin')
+        ]);
+        users = [...(studentRows || []), ...(coordRows || []), ...(adminRows || [])];
+    } catch (err) {
+        console.error('Failed to load users from API:', err);
+        users = [];
+    }
 
     container.innerHTML = `
         <div class="admin-users-shell">
@@ -168,9 +171,9 @@ export function render(container, app) {
 
 function hydrateKpis() {
     const total = users.length;
-    const students = users.filter((u) => u.role === 'Student').length;
-    const coordinators = users.filter((u) => u.role === 'Coordinator').length;
-    const admins = users.filter((u) => u.role === 'Admin').length;
+    const students = users.filter((u) => String(u.role).toLowerCase() === 'student').length;
+    const coordinators = users.filter((u) => String(u.role).toLowerCase() === 'coordinator').length;
+    const admins = users.filter((u) => String(u.role).toLowerCase() === 'cgdc_admin' || String(u.role).toLowerCase() === 'admin').length;
 
     setText('kpi-total-users', formatNumber(total));
     setText('kpi-students', formatNumber(students));
@@ -276,10 +279,11 @@ function matchesFilters(user) {
         user.permission
     ].some((field) => String(field).toLowerCase().includes(state.filters.query));
 
-    const roleMatch = user.role === state.filters.viewRole;
-    const statusMatch = state.filters.status === 'all' || user.status === state.filters.status;
-    const branchMatch = state.filters.branch === 'all' || user.branch === state.filters.branch;
-    const permissionMatch = state.filters.permission === 'all' || user.permission === state.filters.permission;
+    const normalizedViewRole = state.filters.viewRole.toLowerCase() === 'admin' ? 'cgdc_admin' : state.filters.viewRole.toLowerCase();
+    const roleMatch = String(user.role).toLowerCase() === normalizedViewRole;
+    const statusMatch = state.filters.status === 'all' || String(user.status).toLowerCase() === String(state.filters.status).toLowerCase();
+    const branchMatch = state.filters.branch === 'all' || String(user.branch).toLowerCase() === String(state.filters.branch).toLowerCase();
+    const permissionMatch = state.filters.permission === 'all' || String(user.permission).toLowerCase() === String(state.filters.permission).toLowerCase();
 
     const activityMatch = (() => {
         if (state.filters.activity === 'all') return true;

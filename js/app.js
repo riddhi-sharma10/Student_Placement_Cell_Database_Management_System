@@ -33,12 +33,13 @@ const App = {
     },
 
     async showPortal() {
-        document.getElementById('auth-container').classList.add('hidden');
         document.getElementById('portal-container').classList.remove('hidden');
+        document.getElementById('auth-container').classList.add('hidden');
+        const roleFolder = this.state.role === 'admin' ? 'cgdc_admin' : this.state.role;
         
         // Dynamic Role-based UI components
-        const sidebarModule = await import(/* @vite-ignore */ `./${this.state.role}/sidebar.js`);
-        const navbarModule = await import(/* @vite-ignore */ `./${this.state.role}/navbar.js`);
+        const sidebarModule = await import(/* @vite-ignore */ `./${roleFolder}/sidebar.js`);
+        const navbarModule = await import(/* @vite-ignore */ `./${roleFolder}/navbar.js`);
         
         this.Sidebar = sidebarModule.Sidebar;
         this.Navbar = navbarModule.Navbar;
@@ -54,6 +55,7 @@ const App = {
     async navigateTo(pageId) {
         this.state.currentPage = pageId;
         const pageContent = document.getElementById('page-content');
+        const roleFolder = this.state.role === 'admin' ? 'cgdc_admin' : this.state.role;
         const resetScroll = () => {
             if (pageContent) pageContent.scrollTop = 0;
             window.scrollTo(0, 0);
@@ -66,8 +68,7 @@ const App = {
 
         // Dynamic Module Loading based on role
         try {
-            const role = this.state.role;
-            const modulePath = `./${role}/${pageId}.js`;
+            const modulePath = `./${roleFolder}/${pageId}.js`;
             const module = await import(/* @vite-ignore */ modulePath);
             
             if (module && module.render) {

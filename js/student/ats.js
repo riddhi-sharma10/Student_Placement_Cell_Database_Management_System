@@ -1,10 +1,24 @@
-// js/student/ats.js
+import { api } from '../api.js';
 
-export function render(container, app) {
+export async function render(container, app) {
+    container.innerHTML = `<div style="padding:24px;"><h2>Fetching analysis history...</h2></div>`;
+
+    try {
+        const resumes = await api.get('/resumes');
+        renderATSPage(container, resumes);
+    } catch (err) {
+        container.innerHTML = `<div class="card" style="padding:24px; color:#ef4444;">Sync Error: ${err.message}</div>`;
+    }
+}
+
+function renderATSPage(container, resumes) {
+    const latest = resumes[0] || { score: 0, date: 'N/A', filename: 'No resume uploaded' };
+    const score = latest.score || 0;
+    
     container.innerHTML = `
         <div class="dashboard-header" style="margin-bottom: 32px;">
             <h1 style="font-size: 2rem; color: var(--primary);">Resume ATS Optimizer</h1>
-            <p style="color: var(--text-muted);">Analyze your resume against industry standards and job descriptions.</p>
+            <p style="color: var(--text-muted);">View your database-verified resume scores and history.</p>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px;">
@@ -12,12 +26,7 @@ export function render(container, app) {
                 <input type="file" id="resume-upload-input" accept=".pdf" style="display: none;">
                 <ion-icon name="cloud-upload-outline" style="font-size: 4rem; color: var(--primary); margin-bottom: 20px;"></ion-icon>
                 <h2 id="upload-title" style="margin-bottom: 8px;">Upload New Resume</h2>
-                <p id="upload-instruction" style="color: var(--text-muted); text-align: center; margin-bottom: 24px;">Drag and drop your PDF resume here or click to browse. Supported format: PDF (Max 5MB)</p>
-                
-                <div class="form-group" style="width: 100%; max-width: 300px;" onclick="event.stopPropagation()">
-                    <label>VERSION LABEL</label>
-                    <input type="text" id="version-label" placeholder="e.g. Software Engineer v2" style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px;">
-                </div>
+                <p id="upload-instruction" style="color: var(--text-muted); text-align: center; margin-bottom: 24px;">Supported format: PDF (Max 5MB). Analysis values will be saved to your official record.</p>
                 
                 <button class="btn-primary" id="start-analysis-btn" style="width: 100%; max-width: 300px;" onclick="event.stopPropagation()">
                     <span id="btn-text">Start ATS Analysis</span>
@@ -28,91 +37,63 @@ export function render(container, app) {
             <div class="card">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
                     <h3>Latest Analysis Result</h3>
-                    <span class="tag tag-info">Latest: Oct 12, 2024</span>
+                    <span class="tag tag-info">Verified Score</span>
                 </div>
                 
                 <div style="display: flex; align-items: center; gap: 40px; margin-bottom: 32px; background: rgba(34, 197, 94, 0.03); padding: 24px; border-radius: 20px; border: 1px solid rgba(34, 197, 94, 0.1);">
                     <div style="position: relative; width: 140px; height: 140px; display: flex; align-items: center; justify-content: center;">
                         <svg viewBox="0 0 100 100" style="transform: rotate(-90deg); width: 100%; height: 100%; filter: drop-shadow(0 4px 12px rgba(34, 197, 94, 0.2));">
-                            <!-- Background Track -->
                             <circle cx="50" cy="50" r="42" fill="transparent" stroke="#e2e8f0" stroke-width="8" />
-                            <!-- Progress Bar with Gradient -->
-                            <circle cx="50" cy="50" r="42" fill="transparent" stroke="url(#score-gradient)" 
-                                stroke-width="8" stroke-dasharray="263.8" stroke-dashoffset="31.6" 
+                            <circle cx="50" cy="50" r="42" fill="transparent" stroke="var(--success)" 
+                                stroke-width="8" stroke-dasharray="263.8" stroke-dashoffset="${263.8 * (1 - score/100)}" 
                                 stroke-linecap="round" />
-                            <defs>
-                                <linearGradient id="score-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stop-color="#22c55e" />
-                                    <stop offset="100%" stop-color="#4ade80" />
-                                </linearGradient>
-                            </defs>
                         </svg>
                         <div style="position: absolute; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                            <span style="font-size: 2.2rem; font-weight: 900; color: var(--success); line-height: 1;">88</span>
+                            <span style="font-size: 2.2rem; font-weight: 900; color: var(--success); line-height: 1;">${score}</span>
                             <span style="font-size: 0.6rem; font-weight: 800; color: #64748b; margin-top: 4px; letter-spacing: 0.5px;">SCORE</span>
                         </div>
                     </div>
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
                             <ion-icon name="ribbon" style="color: var(--success); font-size: 1.25rem;"></ion-icon>
-                            <h4 style="font-size: 1.4rem; color: var(--success); font-weight: 800; margin: 0;">Strong Match!</h4>
+                            <h4 style="font-size: 1.4rem; color: var(--success); font-weight: 800; margin: 0;">${score >= 80 ? 'Strong Match!' : score >= 60 ? 'Good Potential' : 'Needs Work'}</h4>
                         </div>
-                        <p style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0; font-weight: 500;">Your resume performs exceptionally well for <b>Software Engineer</b> roles. We found <b>14/15</b> core keywords during the scan.</p>
+                        <p style="font-size: 0.95rem; color: #475569; line-height: 1.6; margin: 0; font-weight: 500;">Your last uploaded resume (<b>${latest.filename}</b>) scored <b>${score}%</b> during the placement cell scan.</p>
                     </div>
                 </div>
 
                 <div style="margin-bottom: 24px;">
-                    <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 12px;">KEYWORDS FOUND</label>
+                    <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 12px;">DATABASE STATUS</label>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <span class="tag tag-success">Python</span>
-                        <span class="tag tag-success">React</span>
-                        <span class="tag tag-success">Node.js</span>
-                        <span class="tag tag-success">REST API</span>
-                        <span class="tag tag-success">Docker</span>
-                        <span class="tag tag-success">Git</span>
-                        <span class="tag tag-success">Agile</span>
-                    </div>
-                </div>
-
-                <div>
-                    <label style="font-size: 0.75rem; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 12px;">MISSING KEYWORDS (IMPROVE)</label>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                        <span class="tag tag-danger">Kubernetes</span>
-                        <span class="tag tag-danger">CI/CD Pipeline</span>
-                        <span class="tag tag-danger">TypeScript</span>
+                        <span class="tag tag-success">OFFICIAL RECORD</span>
+                        <span class="tag tag-info">${latest.date !== 'N/A' ? new Date(latest.date).toLocaleDateString() : 'No Uploads'}</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="card" style="margin-top: 32px;">
-            <h3>Analysis History</h3>
+            <h3>Analysis History from Database</h3>
             <div class="data-table-container" style="margin-top: 16px;">
                 <table>
                     <thead>
                         <tr>
-                            <th>Version Label</th>
-                            <th>Date</th>
+                            <th>File Name</th>
+                            <th>Upload Date</th>
                             <th>ATS Score</th>
                             <th>Status</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr>
-                            <td style="font-weight: 600;">Software Engineer v2</td>
-                            <td>Oct 12, 2024</td>
-                            <td><span style="font-weight: 700; color: var(--success);">88%</span></td>
-                            <td><span class="tag tag-success">Optimized</span></td>
-                            <td><button class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem;">Download Report</button></td>
-                        </tr>
-                        <tr>
-                            <td style="font-weight: 600;">Frontend Developer v1</td>
-                            <td>Oct 05, 2024</td>
-                            <td><span style="font-weight: 700; color: var(--warning);">72%</span></td>
-                            <td><span class="tag tag-info">Needs Review</span></td>
-                            <td><button class="btn-primary" style="padding: 6px 12px; font-size: 0.75rem;">Download Report</button></td>
-                        </tr>
+                        ${resumes.map(r => `
+                            <tr>
+                                <td style="font-weight: 600;">${r.filename}</td>
+                                <td>${new Date(r.date).toLocaleDateString()}</td>
+                                <td><span style="font-weight: 700; color: ${r.score >= 80 ? 'var(--success)' : 'var(--warning)'};">${r.score}%</span></td>
+                                <td><span class="tag ${r.score >= 80 ? 'tag-success' : 'tag-info'}">${r.score >= 80 ? 'Optimized' : 'Review Required'}</span></td>
+                            </tr>
+                        `).join('')}
+                        ${resumes.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:32px;">No resume records found in your database profile.</td></tr>' : ''}
                     </tbody>
                 </table>
             </div>

@@ -1,89 +1,124 @@
-// js/admin/dashboard.js
+// js/cgdc_admin/dashboard.js
+// Rebuilt from scratch — 100% synced to GET /admin/dashboard API
+import { api } from '../api.js';
 
-const dashboardData = {
-    stats: [
-        { label: 'Total Students', value: 12480, icon: 'people-outline', note: '+4% MoM', noteType: 'neutral' },
-        { label: 'Companies', value: 482, icon: 'business-outline', note: 'Active', noteType: 'active' },
-        { label: 'Profiles Verified', value: 11042, icon: 'id-card-outline', note: '', noteType: 'neutral' },
-        { label: 'Applications', value: 34591, icon: 'send-outline', note: '', noteType: 'neutral' },
-        { label: 'Interviews', value: 8214, icon: 'calendar-clear-outline', note: '', noteType: 'neutral' },
-        { label: 'Total Offers', value: 5102, icon: 'checkmark-done-outline', note: '', noteType: 'neutral' },
-        { label: 'Placements', value: 4890, icon: 'briefcase-outline', note: '', noteType: 'neutral' },
-        { label: 'Placement %', value: '84.2%', icon: 'newspaper-outline', note: '', noteType: 'highlight' }
-    ],
-    trend: {
-        labels: ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-        placements: [420, 620, 810, 1010, 1120, 700]
-    },
-    tiers: [
-        { label: 'Tier 1 (Fortune 500)', value: 217, color: '#0f2f61' },
-        { label: 'Tier 2 (Growth Startups)', value: 144, color: '#4a6296' },
-        { label: 'Tier 3 (Local Leaders)', value: 121, color: '#f2cf9e' }
-    ],
-    departments: [
-        { name: 'Computer Science', placed: 1420 },
-        { name: 'Mechanical Engineering', placed: 980 },
-        { name: 'Electronics and Communication Engineering', placed: 850 }
-    ],
-    topCompanies: [
-        { name: 'Global Dynamics Inc.', industry: 'Technology & Cloud', offers: 142 },
-        { name: 'Stellar Fintech', industry: 'Financial Services', offers: 98 },
-        { name: 'NexGen Robotics', industry: 'Industrial Automation', offers: 85 }
-    ],
-    records: [
-        { initials: 'JD', student: 'Jonathan Doe', department: 'Computer Science', company: 'Microsoft', packageLpa: 24.5, status: 'in-progress' },
-        { initials: 'AM', student: 'Alice Miller', department: 'Mechanical Engineering', company: 'Tesla Inc.', packageLpa: 18.0, status: 'placed' },
-        { initials: 'SR', student: 'Samuel Reed', department: 'Electronics and Communication Engineering', company: 'JP Morgan', packageLpa: 14.2, status: 'placed' },
-        { initials: 'EL', student: 'Emma Lee', department: 'Electronics and Communication Engineering', company: 'Intel Corp', packageLpa: 21.5, status: 'rejected' },
-        { initials: 'RK', student: 'Rohan Kapoor', department: 'Computer Science', company: 'Amazon', packageLpa: 31.0, status: 'placed' }
-    ]
+/*──────────────────────────────────────────────
+  STATE — mirrors the exact shape returned by
+  server/routes/admin.js → router.get('/dashboard')
+──────────────────────────────────────────────*/
+let data = {
+    stats: [],
+    trend: { labels: [], placements: [] },
+    tiers: [],
+    departments: [],
+    topCompanies: [],
+    records: []
 };
 
-const dashboardState = {
-    statusFilter: 'all'
-};
+let statusFilter = 'all';
 
-export function render(container, app) {
+/*──────────────────────────────────────────────
+  ENTRY POINT
+──────────────────────────────────────────────*/
+export async function render(container, app) {
+    // Loading state
+    container.innerHTML = `
+        <div class="admin-dashboard-shell" style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+            <div style="text-align:center;color:var(--text-muted);">
+                <ion-icon name="hourglass-outline" style="font-size:2.5rem;display:block;margin:0 auto 12px;"></ion-icon>
+                <p>Loading dashboard data from database…</p>
+            </div>
+        </div>
+    `;
+
+    // Fetch live data from MySQL via the backend API
+    try {
+        const live = await api.get('/admin/dashboard');
+        data = {
+            stats:        live.stats        || [],
+            trend:        live.trend        || { labels: [], placements: [] },
+            tiers:        live.tiers        || [],
+            departments:  live.departments  || [],
+            topCompanies: live.topCompanies || [],
+            records:      live.records      || []
+        };
+    } catch (err) {
+        console.error('Dashboard fetch failed:', err);
+        container.innerHTML = `
+            <div style="padding:40px;text-align:center;color:var(--text-muted);">
+                <h2>Failed to load Dashboard</h2>
+                <p>Restart the backend server (<code>Ctrl+C</code> → <code>npm start</code>) to apply fixes.</p>
+                <p style="margin-top:10px;font-size:0.85rem;"><code>${err.message}</code></p>
+            </div>
+        `;
+        return;
+    }
+
+    // Build the page
+    try {
+        renderShell(container);
+        populateRecordsTable();
+        drawCharts();
+        wireEvents(app);
+    } catch (renderErr) {
+        console.error('Dashboard render crash:', renderErr);
+        container.innerHTML = `<div style="color:red;padding:2rem;"><h1>Render Error</h1><pre>${renderErr.stack}</pre></div>`;
+    }
+}
+
+/*──────────────────────────────────────────────
+  SHELL — static HTML skeleton
+  Every piece of data comes from the `data`
+  object populated above from the API
+──────────────────────────────────────────────*/
+function renderShell(container) {
+    const tierTotal = data.tiers.reduce((s, t) => s + Number(t.value), 0);
+
     container.innerHTML = `
         <div class="admin-dashboard-shell">
+
+            <!-- Header -->
             <div class="admin-dashboard-header">
                 <div>
                     <h1>Placement Overview</h1>
+                    <p>Real-time statistics synced from the placement database</p>
                 </div>
             </div>
 
+            <!-- KPI Stat Cards -->
             <div class="admin-stat-grid">
-                ${dashboardData.stats.map(renderStatCard).join('')}
+                ${data.stats.map(statCardHTML).join('')}
             </div>
 
+            <!-- Charts Row: Trend + Tier Donut -->
             <div class="admin-grid-two">
                 <div class="card">
                     <div class="admin-card-head">
                         <h3>Placement Trend</h3>
-                        <span>Monthly growth trajectory (Jul - Dec)</span>
+                        <span>Monthly placements (${data.trend.labels.join(', ') || 'no data'})</span>
                     </div>
-                    <canvas id="admin-placement-trend" class="admin-chart"></canvas>
+                    <canvas id="dash-trend-chart" class="admin-chart"></canvas>
                 </div>
 
                 <div class="card">
                     <div class="admin-card-head">
                         <h3>Company Tiers</h3>
-                        <span>${formatNumber(getTierTotal())} total units</span>
+                        <span>${fmt(tierTotal)} total companies</span>
                     </div>
                     <div class="admin-tier-chart-wrap">
-                        <canvas id="admin-company-tier" class="admin-chart admin-chart-sm"></canvas>
+                        <canvas id="dash-tier-chart" class="admin-chart admin-chart-sm"></canvas>
                         <div class="admin-tier-center">
-                            <strong>${formatNumber(getTierTotal())}</strong>
-                            <span>Total Units</span>
+                            <strong>${fmt(tierTotal)}</strong>
+                            <span>Total</span>
                         </div>
                     </div>
                     <div class="admin-tier-list">
-                        ${dashboardData.tiers.map((tier) => {
-                            const percent = ((tier.value / getTierTotal()) * 100).toFixed(1);
+                        ${data.tiers.map(t => {
+                            const pct = tierTotal > 0 ? ((t.value / tierTotal) * 100).toFixed(1) : '0.0';
                             return `
                                 <div class="admin-tier-item">
-                                    <span><i style="background:${tier.color}"></i>${tier.label}</span>
-                                    <strong>${percent}%</strong>
+                                    <span><i style="background:${t.color}"></i>${t.label}</span>
+                                    <strong>${pct}%</strong>
                                 </div>
                             `;
                         }).join('')}
@@ -91,14 +126,15 @@ export function render(container, app) {
                 </div>
             </div>
 
+            <!-- Department + Top Companies -->
             <div class="admin-grid-two admin-grid-balance">
                 <div class="card">
                     <div class="admin-card-head">
                         <h3>Department Placements</h3>
-                        <span>Confirmed placements by department</span>
+                        <span>Unique students placed by department</span>
                     </div>
                     <div class="admin-dept-list">
-                        ${dashboardData.departments.map(renderDepartmentRow).join('')}
+                        ${deptRowsHTML()}
                     </div>
                 </div>
 
@@ -108,32 +144,32 @@ export function render(container, app) {
                             <h3>Top 5 Hiring Companies</h3>
                             <span>By offers rolled out this cycle</span>
                         </div>
-                        <button id="admin-view-all-companies" class="admin-link-btn" type="button">View All</button>
+                        <button id="dash-view-all-cos" class="admin-link-btn" type="button">View All</button>
                     </div>
                     <div class="admin-company-list">
-                        ${dashboardData.topCompanies.map((company) => renderTopCompany(company)).join('')}
+                        ${data.topCompanies.map(companyItemHTML).join('')}
                     </div>
                 </div>
             </div>
 
+            <!-- Recent Records Table -->
             <div class="card">
                 <div class="admin-card-head admin-card-head-inline">
                     <div>
                         <h3>Recent Placement Records</h3>
-                        <span>Latest outcomes across departments and partners</span>
+                        <span>Latest 50 outcomes from the APPLICATION table</span>
                     </div>
                     <div class="admin-table-actions">
                         <div class="admin-filter-wrap">
-                            <button id="admin-record-filter-btn" class="admin-user-action" type="button">
-                                <ion-icon name="funnel-outline"></ion-icon>
-                                Filter
+                            <button id="dash-filter-btn" class="admin-user-action" type="button">
+                                <ion-icon name="funnel-outline"></ion-icon> Filter
                             </button>
-                            <div id="admin-record-filter-panel" class="admin-filter-panel hidden" style="width: 210px;">
+                            <div id="dash-filter-panel" class="admin-filter-panel hidden" style="width:210px;">
                                 <div class="admin-filter-title">Record Status</div>
                                 <div class="admin-filter-grid">
                                     <label>
                                         <span>Status</span>
-                                        <select id="admin-record-filter" aria-label="Filter records by status">
+                                        <select id="dash-filter-select">
                                             <option value="all">All</option>
                                             <option value="in-progress">In Progress</option>
                                             <option value="placed">Placed</option>
@@ -142,7 +178,7 @@ export function render(container, app) {
                                     </label>
                                 </div>
                                 <div class="admin-filter-actions">
-                                    <button id="admin-apply-record-filter" class="btn-primary" type="button">Apply</button>
+                                    <button id="dash-apply-filter" class="btn-primary" type="button">Apply</button>
                                 </div>
                             </div>
                         </div>
@@ -158,141 +194,142 @@ export function render(container, app) {
                                 <th>Company</th>
                                 <th>Package (LPA)</th>
                                 <th>Status</th>
-                                <th>Action</th>
                             </tr>
                         </thead>
-                        <tbody id="admin-recent-records-body"></tbody>
+                        <tbody id="dash-records-body"></tbody>
                     </table>
                 </div>
             </div>
+
         </div>
     `;
-
-    renderRecentRecords();
-    initCharts();
-    bindEvents(app);
 }
 
-function renderStatCard(stat) {
-    const value = typeof stat.value === 'number' ? formatNumber(stat.value) : stat.value;
-    const noteClass = stat.noteType === 'highlight' ? 'admin-note-highlight' : (stat.noteType === 'active' ? 'admin-note-active' : 'admin-note-neutral');
-
+/*──────────────────────────────────────────────
+  STAT CARD
+  Maps exactly to the stat objects built in
+  admin.js lines 89-98
+──────────────────────────────────────────────*/
+function statCardHTML(s) {
+    const val = typeof s.value === 'number' ? fmt(s.value) : s.value;
+    const noteClass = s.noteType === 'highlight' ? 'admin-note-highlight'
+                    : s.noteType === 'active'    ? 'admin-note-active'
+                    : 'admin-note-neutral';
     return `
-        <div class="card admin-stat-card ${stat.noteType === 'highlight' ? 'admin-stat-card-highlight' : ''}">
+        <div class="card admin-stat-card ${s.noteType === 'highlight' ? 'admin-stat-card-highlight' : ''}">
             <div class="admin-stat-top">
                 <div class="admin-stat-icon">
-                    <ion-icon name="${stat.icon}"></ion-icon>
+                    <ion-icon name="${s.icon}"></ion-icon>
                 </div>
-                ${stat.note ? `<span class="${noteClass}">${stat.note}</span>` : ''}
+                ${s.note ? `<span class="${noteClass}">${s.note}</span>` : ''}
             </div>
             <div class="admin-stat-meta">
-                <p>${stat.label}</p>
-                <h2>${value}</h2>
+                <p>${s.label}</p>
+                <h2>${val}</h2>
             </div>
         </div>
     `;
 }
 
-function renderDepartmentRow(department) {
-    const max = Math.max(...dashboardData.departments.map((d) => d.placed));
-    const pct = Math.round((department.placed / max) * 100);
-
-    return `
-        <div class="admin-dept-row">
-            <div class="admin-dept-top">
-                <strong>${department.name}</strong>
-                <span>${formatNumber(department.placed)}</span>
+/*──────────────────────────────────────────────
+  DEPARTMENT ROWS
+  Maps to: { name, placed }
+──────────────────────────────────────────────*/
+function deptRowsHTML() {
+    if (!data.departments.length) return '<p style="color:var(--text-muted);font-size:0.85rem;">No placement data yet.</p>';
+    const max = Math.max(...data.departments.map(d => Number(d.placed || 0)));
+    return data.departments.map(d => {
+        const placed = Number(d.placed || 0);
+        const pct = max > 0 ? Math.round((placed / max) * 100) : 0;
+        return `
+            <div class="admin-dept-row">
+                <div class="admin-dept-top">
+                    <strong>${d.name}</strong>
+                    <span>${fmt(placed)}</span>
+                </div>
+                <div class="admin-dept-track">
+                    <div style="width:${pct}%"></div>
+                </div>
             </div>
-            <div class="admin-dept-track">
-                <div style="width:${pct}%"></div>
-            </div>
-        </div>
-    `;
+        `;
+    }).join('');
 }
 
-function renderTopCompany(company) {
+/*──────────────────────────────────────────────
+  TOP COMPANY ITEM
+  Maps to: { name, industry, offers }
+──────────────────────────────────────────────*/
+function companyItemHTML(c) {
+    const name = c.name || 'Unknown';
     return `
         <div class="admin-company-item">
-            <div class="admin-company-avatar">${company.name.charAt(0)}</div>
+            <div class="admin-company-avatar">${name.charAt(0).toUpperCase()}</div>
             <div>
-                <strong>${company.name}</strong>
-                <p>${company.industry}</p>
+                <strong>${name}</strong>
+                <p>${c.industry || 'General'}</p>
             </div>
             <div class="admin-company-offers">
-                <strong>${company.offers}</strong>
+                <strong>${Number(c.offers || 0)}</strong>
                 <span>offers</span>
             </div>
         </div>
     `;
 }
 
-function renderRecentRecords() {
-    const tbody = document.getElementById('admin-recent-records-body');
+/*──────────────────────────────────────────────
+  RECORDS TABLE
+  Maps to: { initials, student, department,
+             company, packageLpa, status }
+
+  status comes back normalised from the backend
+  as: 'placed' | 'in-progress' | 'rejected'
+──────────────────────────────────────────────*/
+function populateRecordsTable() {
+    const tbody = document.getElementById('dash-records-body');
     if (!tbody) return;
 
-    const rows = dashboardState.statusFilter === 'all'
-        ? dashboardData.records
-        : dashboardData.records.filter((record) => record.status === dashboardState.statusFilter);
+    const rows = statusFilter === 'all'
+        ? data.records
+        : data.records.filter(r => r.status === statusFilter);
 
-    tbody.innerHTML = rows.length
-        ? rows.map((record) => `
-            <tr>
-                <td>
-                    <div class="admin-student-cell">
-                        <span class="admin-student-initials">${record.initials}</span>
-                        <span>${record.student}</span>
-                    </div>
-                </td>
-                <td>${record.department}</td>
-                <td>${record.company}</td>
-                <td>${record.packageLpa.toFixed(1)}</td>
-                <td><span class="tag ${getStatusClass(record.status)}">${formatStatus(record.status)}</span></td>
-                <td><ion-icon name="ellipsis-vertical"></ion-icon></td>
-            </tr>
-        `).join('')
-        : `<tr><td colspan="6" style="text-align:center;color:var(--text-muted);">No records found for selected filter.</td></tr>`;
+    if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No records match the selected filter.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = rows.map(r => `
+        <tr>
+            <td>
+                <div class="admin-student-cell">
+                    <span class="admin-student-initials">${r.initials}</span>
+                    <span>${r.student}</span>
+                </div>
+            </td>
+            <td>${r.department}</td>
+            <td>${r.company}</td>
+            <td>${Number(r.packageLpa).toFixed(1)}</td>
+            <td><span class="tag ${statusTag(r.status)}">${statusLabel(r.status)}</span></td>
+        </tr>
+    `).join('');
 }
 
-function bindEvents(app) {
-    const filter = document.getElementById('admin-record-filter');
-    const filterBtn = document.getElementById('admin-record-filter-btn');
-    const filterPanel = document.getElementById('admin-record-filter-panel');
-    const applyFilterBtn = document.getElementById('admin-apply-record-filter');
-    const viewAllBtn = document.getElementById('admin-view-all-companies');
-
-    filterBtn?.addEventListener('click', () => {
-        if (filter) filter.value = dashboardState.statusFilter;
-        filterPanel?.classList.toggle('hidden');
-    });
-
-    applyFilterBtn?.addEventListener('click', () => {
-        dashboardState.statusFilter = filter?.value || 'all';
-        filterPanel?.classList.add('hidden');
-        renderRecentRecords();
-    });
-
-    document.addEventListener('click', (event) => {
-        if (!filterPanel || !filterBtn) return;
-        const target = event.target;
-        if (target instanceof Node && !filterPanel.contains(target) && !filterBtn.contains(target)) {
-            filterPanel.classList.add('hidden');
-        }
-    });
-
-    viewAllBtn?.addEventListener('click', () => app.navigateTo('companies'));
-}
-
-function initCharts() {
-    const trendCanvas = document.getElementById('admin-placement-trend');
-    if (trendCanvas) {
-        new Chart(trendCanvas, {
+/*──────────────────────────────────────────────
+  CHARTS — Chart.js (loaded from CDN in HTML)
+  Trend: bar chart   → data.trend.labels / placements
+  Tier:  doughnut    → data.tiers.label / value / color
+──────────────────────────────────────────────*/
+function drawCharts() {
+    // Bar chart — Placement Trend
+    const trendEl = document.getElementById('dash-trend-chart');
+    if (trendEl && data.trend.labels.length) {
+        new Chart(trendEl, {
             type: 'bar',
             data: {
-                labels: dashboardData.trend.labels,
+                labels: data.trend.labels,
                 datasets: [{
-                    label: '2024 Placements',
-                    data: dashboardData.trend.placements,
-                    backgroundColor: ['#cfd8e3', '#bdc9d8', '#a5b4c7', '#788ca9', '#0f2f61', '#445e8f'],
+                    label: 'Placements',
+                    data: data.trend.placements,
+                    backgroundColor: ['#cfd8e3','#bdc9d8','#a5b4c7','#788ca9','#0f2f61','#445e8f'],
                     borderRadius: 8,
                     borderSkipped: false
                 }]
@@ -301,22 +338,23 @@ function initCharts() {
                 maintainAspectRatio: false,
                 plugins: { legend: { display: true, position: 'top', align: 'end' } },
                 scales: {
-                    y: { grid: { color: '#eef2f7' }, ticks: { stepSize: 200 } },
+                    y: { grid: { color: '#eef2f7' }, beginAtZero: true },
                     x: { grid: { display: false } }
                 }
             }
         });
     }
 
-    const tierCanvas = document.getElementById('admin-company-tier');
-    if (tierCanvas) {
-        new Chart(tierCanvas, {
+    // Doughnut — Company Tiers
+    const tierEl = document.getElementById('dash-tier-chart');
+    if (tierEl && data.tiers.length) {
+        new Chart(tierEl, {
             type: 'doughnut',
             data: {
-                labels: dashboardData.tiers.map((tier) => tier.label),
+                labels: data.tiers.map(t => t.label),
                 datasets: [{
-                    data: dashboardData.tiers.map((tier) => tier.value),
-                    backgroundColor: dashboardData.tiers.map((tier) => tier.color),
+                    data: data.tiers.map(t => t.value),
+                    backgroundColor: data.tiers.map(t => t.color),
                     borderWidth: 0
                 }]
             },
@@ -329,50 +367,52 @@ function initCharts() {
     }
 }
 
-function exportRecordsAsCsv(rows) {
-    const header = ['Student Name', 'Department', 'Company', 'Package (LPA)', 'Status'];
-    const content = rows.map((row) => [
-        row.student,
-        row.department,
-        row.company,
-        row.packageLpa.toFixed(1),
-        row.status
-    ]);
+/*──────────────────────────────────────────────
+  EVENT WIRING
+──────────────────────────────────────────────*/
+function wireEvents(app) {
+    const filterBtn   = document.getElementById('dash-filter-btn');
+    const filterPanel = document.getElementById('dash-filter-panel');
+    const filterSel   = document.getElementById('dash-filter-select');
+    const applyBtn    = document.getElementById('dash-apply-filter');
+    const viewAllBtn  = document.getElementById('dash-view-all-cos');
 
-    const csv = [header, ...content]
-        .map((line) => line.map((value) => `"${String(value).replaceAll('"', '""')}"`).join(','))
-        .join('\n');
+    filterBtn?.addEventListener('click', () => {
+        if (filterSel) filterSel.value = statusFilter;
+        filterPanel?.classList.toggle('hidden');
+    });
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `placement-records-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    applyBtn?.addEventListener('click', () => {
+        statusFilter = filterSel?.value || 'all';
+        filterPanel?.classList.add('hidden');
+        populateRecordsTable();
+    });
+
+    document.addEventListener('click', e => {
+        if (!filterPanel || !filterBtn) return;
+        if (e.target instanceof Node && !filterPanel.contains(e.target) && !filterBtn.contains(e.target)) {
+            filterPanel.classList.add('hidden');
+        }
+    });
+
+    viewAllBtn?.addEventListener('click', () => app.navigateTo('companies'));
 }
 
-function getTierTotal() {
-    return dashboardData.tiers.reduce((sum, tier) => sum + tier.value, 0);
+/*──────────────────────────────────────────────
+  HELPERS
+──────────────────────────────────────────────*/
+function fmt(n) {
+    return new Intl.NumberFormat('en-IN').format(n);
 }
 
-function getStatusClass(status) {
-    const statusClassMap = {
-        'in-progress': 'tag-warning',
-        placed: 'tag-info',
-        rejected: 'tag-danger'
-    };
-
-    return statusClassMap[status] || 'tag-info';
+function statusTag(s) {
+    if (s === 'placed')      return 'tag-info';
+    if (s === 'in-progress') return 'tag-warning';
+    if (s === 'rejected')    return 'tag-danger';
+    return 'tag-info';
 }
 
-function formatStatus(status) {
-    if (status === 'in-progress') return 'IN PROGRESS';
-    return status.toUpperCase();
-}
-
-function formatNumber(value) {
-    return new Intl.NumberFormat('en-IN').format(value);
+function statusLabel(s) {
+    if (s === 'in-progress') return 'IN PROGRESS';
+    return String(s).toUpperCase();
 }

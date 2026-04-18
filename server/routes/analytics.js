@@ -1,3 +1,4 @@
+
 // server/routes/analytics.js — UPDATED FOR REMOTE SCHEMA
 import express from 'express';
 import pool from '../db.js';
@@ -34,12 +35,12 @@ router.get('/students-with-applications', requireAuth, async (req, res) => {
         const [rows] = await pool.query('SELECT s_id as id, s_name as student_name, dept, total_applications FROM vw_student_application_stats');
         
         // Add additional info from BASE tables
-        const [placements] = await pool.query('SELECT s_id FROM OFFER WHERE status = \"Accepted\"');
+        const [placements] = await pool.query('SELECT s_id FROM OFFER WHERE status = "Accepted"');
         const placedIds = new Set(placements.map(p => p.s_id));
 
         const enriched = rows.map(r => ({
             ...r,
-            roll_no: `ROLL-${r.id}`, // Placeholder or fetch if exists
+            roll_no: `ROLL-${r.id}`, 
             total_applications: r.total_applications,
             selected_count: placedIds.has(r.id) ? 1 : 0,
             cgpa: '--'
@@ -49,6 +50,26 @@ router.get('/students-with-applications', requireAuth, async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: 'Error fetching student application statistics' });
+    }
+});
+
+// 3. Get Full Placement History (for Student History page)
+router.get('/history', requireAuth, async (req, res) => {
+    try {
+        const [rows] = await pool.query('SELECT * FROM vw_accurate_visit_history ORDER BY academic_year DESC');
+        
+        const transformed = rows.map(r => ({
+            year: r.academic_year.toString(),
+            comp_name: r.comp_name,
+            placed: r.actual_students_placed,
+            highest: `₹${r.actual_highest_salary} LPA`,
+            average: `₹${r.actual_avg_salary} LPA`
+        }));
+
+        res.json(transformed);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: 'Error fetching placement history' });
     }
 });
 

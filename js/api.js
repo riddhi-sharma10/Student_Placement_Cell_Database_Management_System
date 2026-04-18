@@ -1,6 +1,6 @@
 // js/api.js
 
-const BASE_URL = '/api'; // proxied to http://localhost:3001
+const BASE_URL = `${window.location.protocol}//${window.location.hostname}:3001/api`;
 
 // Core fetch function — automatically adds the login token
 async function request(path, options = {}) {
@@ -27,7 +27,7 @@ async function request(path, options = {}) {
     const data = await response.json();
 
     if (!response.ok) {
-        throw new Error(data.error || 'Request failed');
+        throw new Error(data.error || data.message || 'Request failed');
     }
 
     return data;

@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.get('/', requireAuth, async (req, res) => {
     try {
-        const [rows] = await pool.query('SELECT comp_id as id, name, industry, tier, website, status FROM COMPANY');
+        const [rows] = await pool.query("SELECT comp_id as id, comp_name as name, industry_type as industry, tier, website, 'active' as status FROM COMPANY");
         res.json(rows);
     } catch (err) {
         console.error(err);

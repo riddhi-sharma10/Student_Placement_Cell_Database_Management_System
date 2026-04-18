@@ -1,67 +1,80 @@
-// js/student/opportunities.js — API Version
+
 import { api } from '../api.js';
 
 let allJobs = [];
+let filteredJobs = [];
 let searchQuery = '';
 
 export async function render(container, app) {
-    container.innerHTML = `<div style="padding:24px;"><h2>Fetching job feed...</h2></div>`;
+    container.innerHTML = `<div style="padding: 24px;"><h2>Loading career opportunities...</h2></div>`;
 
     try {
         allJobs = await api.get('/jobs');
+        filteredJobs = [...allJobs];
         renderPage(container);
     } catch (err) {
-        container.innerHTML = `<div class="card" style="padding:24px; color:#ef4444;">Error: ${err.message}</div>`;
+        container.innerHTML = `<div class="card" style="padding:24px; color:#ef4444;">Database Sync Error: ${err.message}</div>`;
     }
 }
 
 function renderPage(container) {
-    const filtered = allJobs.filter(j => 
-        j.company.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        j.role.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
     container.innerHTML = `
-        <div class="dashboard-header" style="margin-bottom: 32px;">
-            <h1 style="font-size: 2rem; color: var(--primary);">Job Opportunities</h1>
-            <p style="color: var(--text-muted);">Real-time job listings from the placement database.</p>
-        </div>
-
-        <div class="card" style="margin-bottom: 32px;">
-            <div style="display: flex; gap: 16px;">
-                <input id="search-input" type="text" placeholder="Search company or role..." 
-                    value="${searchQuery}" style="flex: 1; padding: 14px; border: 1px solid var(--border); border-radius: 10px;">
-                <button class="btn-primary" style="padding: 0 32px;">Search</button>
+        <div class="dashboard-header" style="margin-bottom: 32px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1 style="font-size: 2rem; color: var(--primary);">Job Opportunities</h1>
+                <p style="color: var(--text-muted);">Explore open positions tailored for your profile.</p>
+            </div>
+            <div style="background: white; padding: 10px 20px; border-radius: 12px; border: 1px solid var(--border); display: flex; align-items: center; gap: 12px; width: 300px;">
+                <ion-icon name="search-outline" style="color: var(--text-muted);"></ion-icon>
+                <input type="text" id="job-search" placeholder="Search role or company..." style="border: none; outline: none; width: 100%; font-size: 0.9rem;" value="${searchQuery}">
             </div>
         </div>
 
-        <div id="job-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 24px;">
-            ${filtered.map(job => `
-                <div class="card job-card" style="display: flex; flex-direction: column; gap: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: start;">
-                        <div style="display: flex; gap: 16px; align-items: center;">
-                            <div style="width: 48px; height: 48px; background: var(--primary); color: white; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-weight: 800;">
-                                ${job.company.charAt(0)}
-                            </div>
-                            <div>
-                                <h3 style="font-size: 1.1rem;">${job.company}</h3>
-                                <p style="font-size: 0.9rem; color: var(--text-muted);">${job.role}</p>
-                            </div>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;">
+            ${filteredJobs.length > 0 ? filteredJobs.map(job => `
+                <div class="card hover-card" style="padding: 24px; display: flex; flex-direction: column; gap: 16px;">
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <div style="width: 54px; height: 54px; border-radius: 12px; background: #f8fafc; color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.4rem; border: 1px solid var(--border);">
+                            ${(job.comp_name || 'C').charAt(0)}
                         </div>
-                        <span class="tag tag-success">₹${job.package} LPA</span>
+                        <div>
+                            <h4 style="margin: 0; font-weight: 800; color: var(--text-main); font-size: 1.1rem;">${job.role}</h4>
+                            <p style="margin: 2px 0 0; color: var(--primary); font-weight: 700;">${job.comp_name || 'Unknown Company'}</p>
+                        </div>
                     </div>
-                    
-                    <div style="margin-top: 12px; display: flex; gap: 12px;">
-                        <button class="btn-primary" style="flex: 1;" onclick="alert('Proceeding to Application for JOB-${job.id}')">Apply Now</button>
+
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                        <span class="tag tag-info" style="font-size: 0.7rem; font-weight: 800;">FULL TIME</span>
+                        <span class="tag tag-success" style="font-size: 0.7rem; font-weight: 800;">₹${job.package} LPA</span>
+                        <span class="tag tag-warning" style="font-size: 0.7rem; font-weight: 800;">CGPA: ${job.eligibility_cgpa}</span>
+                    </div>
+
+                    <div style="margin-top: auto; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Closing Soon</span>
+                        <button class="btn-primary" style="padding: 8px 16px; font-size: 0.8rem; border-radius: 8px;">Apply Now</button>
                     </div>
                 </div>
-            `).join('')}
-            ${filtered.length === 0 ? '<div class="card" style="grid-column: 1/-1;">No jobs found.</div>' : ''}
+            `).join('') : `
+                <div style="grid-column: 1/-1; padding: 80px; text-align: center; color: var(--text-muted);">
+                    <ion-icon name="search-outline" style="font-size: 3rem; margin-bottom: 16px;"></ion-icon>
+                    <h3>No matching jobs found</h3>
+                    <p>Try a different keyword or check back later.</p>
+                </div>
+            `}
         </div>
     `;
 
-    container.querySelector('#search-input').addEventListener('input', e => {
-        searchQuery = e.target.value;
-        renderPage(container);
-    });
+    const searchInput = document.getElementById('job-search');
+    if (searchInput) {
+        searchInput.focus();
+        searchInput.setSelectionRange(searchQuery.length, searchQuery.length);
+        searchInput.addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            filteredJobs = allJobs.filter(j => 
+                j.role.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                j.comp_name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            renderPage(container);
+        });
+    }
 }
