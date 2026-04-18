@@ -159,7 +159,10 @@ function initCharts(stats) {
     new Chart(placementCtx, {
       type: "doughnut",
       data: {
-        labels: [`Placed Students: ${stats.totalPlaced}`, `Currently Pending: ${unplaced}`],
+        labels: [
+          `Placed Students: ${stats.totalPlaced}`,
+          `Currently Pending: ${unplaced}`,
+        ],
         datasets: [
           {
             data: [stats.totalPlaced, unplaced],
@@ -256,7 +259,7 @@ function initCharts(stats) {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { top: 25 } },
+        layout: { padding: { top: 50 } },
         plugins: {
           legend: { display: false },
           datalabels: {
