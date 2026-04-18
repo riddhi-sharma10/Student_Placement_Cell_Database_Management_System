@@ -11,8 +11,8 @@ export async function render(container, app) {
       api.get("/coordinator/profile"),
     ]);
 
-    console.log("[dashboard] stats:", stats);
-    console.log("[dashboard] profile:", profile);
+    console.log("[dashboard] stats received:", stats);
+    console.log("[dashboard] appStats:", stats.appStats);
 
     // Sync real name into app state so navbar also stays consistent
     if (profile.name) {
@@ -83,7 +83,7 @@ function renderShell(container, coordName, dept, stats) {
                     <div class="admin-card-head">
                         <h3>Top Application Destinations</h3>
                     </div>
-                    <div style="position:relative; height:240px; width:100%; margin-top:20px;">
+                    <div id="appStatsContainer" style="position:relative; height:240px; width:100%; margin-top:20px;">
                         <canvas id="coordAppChart"></canvas>
                     </div>
                 </div>
@@ -133,10 +133,11 @@ function renderShell(container, coordName, dept, stats) {
         </div>
     `;
 
-  setTimeout(() => initCharts(stats), 100);
+  setTimeout(() => initCharts(stats), 200);
 }
 
 function initCharts(stats) {
+  console.log("[initCharts] initializing with:", stats.appStats);
   if (!window.Chart) {
     console.warn("Chart.js not loaded!");
     return;

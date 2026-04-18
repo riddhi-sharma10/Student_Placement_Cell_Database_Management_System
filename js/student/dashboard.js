@@ -37,6 +37,7 @@ export async function render(container, app) {
 function renderDashboard(container, app, applications, jobs) {
     const stats = {
         total: applications.length,
+        underReview: applications.filter(a => a.status === 'under_review').length,
         shortlisted: applications.filter(a => a.status === 'shortlisted').length,
         selected: applications.filter(a => a.status === 'selected').length,
         rejected: applications.filter(a => a.status === 'rejected').length
@@ -58,8 +59,9 @@ function renderDashboard(container, app, applications, jobs) {
             </div>
 
             <!-- Stats Grid -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px;">
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px; margin-bottom: 32px;">
                 ${renderStatCard('Briefcase', 'Applied', stats.total, 'primary')}
+                ${renderStatCard('Search', 'Under Review', stats.underReview, 'warning')}
                 ${renderStatCard('List', 'Shortlisted', stats.shortlisted, 'info')}
                 ${renderStatCard('Checkmark-Circle', 'Selected', stats.selected, 'success')}
                 ${renderStatCard('Close-Circle', 'Rejected', stats.rejected, 'danger')}
@@ -122,17 +124,20 @@ function renderDashboard(container, app, applications, jobs) {
 
                 </div>
 
-                <!-- Secondary Column (Quick Info) -->
+                <!-- Secondary Column (Timeline) -->
                 <div style="display: flex; flex-direction: column; gap: 32px;">
                     
-                    <!-- Placement Success Path (Visual Progress) -->
-                    <div class="card" style="padding: 24px; background: var(--primary); color: white;">
-                        <h3 style="margin-bottom: 20px;">Recruitment Path</h3>
-                        <div style="display: flex; flex-direction: column; gap: 24px;">
-                            ${renderStep('Applied', stats.total > 0, '1')}
-                            ${renderStep('Assessment', stats.shortlisted > 0, '2')}
-                            ${renderStep('Interview', stats.shortlisted > 0, '3')}
-                            ${renderStep('Offer', stats.selected > 0, '4')}
+                    <!-- Recruitment Path (Timeline) -->
+                    <div class="card" style="padding: 24px; background: white;">
+                        <h3 style="margin-bottom: 24px; color: var(--text-main); font-weight: 800; font-size: 1.25rem;">Recruitment Path</h3>
+                        <div style="position: relative; padding-left: 40px;">
+                            <div style="position: absolute; left: 15px; top: 0; bottom: 0; width: 2px; background: #e2e8f0; z-index: 1;"></div>
+                            <div style="display: flex; flex-direction: column; gap: 32px; position: relative; z-index: 2;">
+                                ${renderTimelineStep({ title: 'Applied', desc: 'Application submitted.', status: stats.total > 0 ? 'completed' : 'pending', icon: 'checkmark-done-circle' })}
+                                ${renderTimelineStep({ title: 'Assessment', desc: 'Technical profile evaluation.', status: stats.total > 0 ? (stats.shortlisted > 0 ? 'completed' : 'in-progress') : 'pending', icon: 'terminal' })}
+                                ${renderTimelineStep({ title: 'Interview', desc: 'HR & Technical rounds.', status: stats.shortlisted > 0 ? (stats.selected > 0 ? 'completed' : 'in-progress') : 'pending', icon: 'chatbubbles' })}
+                                ${renderTimelineStep({ title: 'Offer', desc: 'Final decision pending.', status: stats.selected > 0 ? 'completed' : 'pending', icon: 'medal' })}
+                            </div>
                         </div>
                     </div>
 
@@ -151,12 +156,36 @@ function renderDashboard(container, app, applications, jobs) {
     `;
 }
 
+function renderTimelineStep({ title, desc, status, icon }) {
+    const configs = {
+        completed: { color: '#1e3a8a', bg: '#dbeafe', tag: 'tag-info', tagText: 'COMPLETED', icon: 'checkmark' },
+        'in-progress': { color: '#92400e', bg: '#fef3c7', tag: 'tag-warning', tagText: 'IN PROGRESS', icon: icon },
+        pending: { color: '#64748b', bg: '#f1f5f9', tag: 'tag-muted', tagText: 'PENDING', icon: icon }
+    };
+    const config = configs[status];
+    const isCompleted = status === 'completed';
+
+    return `
+        <div style="display: flex; gap: 20px; align-items: flex-start;">
+            <div style="width: 32px; height: 32px; border-radius: 50%; background: ${isCompleted ? '#0f172a' : config.bg}; color: ${isCompleted ? 'white' : config.color}; display: flex; align-items: center; justify-content: center; margin-left: -40px; border: 4px solid white; box-shadow: 0 0 0 1px #e2e8f0;">
+                <ion-icon name="${isCompleted ? 'checkmark' : config.icon}${isCompleted ? '' : '-outline'}" style="font-size: 1rem;"></ion-icon>
+            </div>
+            <div style="flex: 1;">
+                <h4 style="margin: 0; color: #0f172a; font-weight: 700; font-size: 1.05rem;">${title}</h4>
+                <p style="margin: 4px 0 12px; font-size: 0.85rem; color: #64748b; line-height: 1.4;">${desc}</p>
+                <span class="tag ${config.tag}" style="font-size: 0.65rem; font-weight: 800; text-transform: uppercase;">${config.tagText}</span>
+            </div>
+        </div>
+    `;
+}
+
 function renderStatCard(icon, label, value, type) {
     const classes = {
         primary: 'border-left: 4px solid var(--primary); background: #f0f7ff;',
         success: 'border-left: 4px solid var(--success); background: #f0fdf4;',
         danger:  'border-left: 4px solid var(--danger); background: #fef2f2;',
-        info:    'border-left: 4px solid var(--info); background: #f0f9ff;'
+        info:    'border-left: 4px solid var(--info); background: #f0f9ff;',
+        warning: 'border-left: 4px solid var(--warning); background: #fffbeb;'
     };
     
     return `

@@ -1,6 +1,7 @@
 // js/api.js
 
-const BASE_URL = `${window.location.protocol}//${window.location.hostname}:3001/api`;
+// Using relative path to let Vite Proxy handle routing (fixes CORS and HTML fallback issues)
+const BASE_URL = '/api';
 
 // Core fetch function — automatically adds the login token
 async function request(path, options = {}) {
@@ -24,7 +25,15 @@ async function request(path, options = {}) {
         return;
     }
 
-    const data = await response.json();
+    // Capture response as text first to handle non-JSON better
+    const text = await response.text();
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        console.error('SERVER RESPONDED WITH NON-JSON:', text);
+        throw new Error('Server returned an invalid response (Possibly HTML).');
+    }
 
     if (!response.ok) {
         throw new Error(data.error || data.message || 'Request failed');
@@ -35,21 +44,14 @@ async function request(path, options = {}) {
 
 // Export simple methods for all pages to use
 export const api = {
-    // GET request: api.get('/students')
     get: (path) => request(path),
-
-    // POST request: api.post('/auth/login', { username, password })
     post: (path, body) => request(path, {
         method: 'POST',
         body: JSON.stringify(body)
     }),
-
-    // PUT request: api.put('/students/1', { status: 'Placed' })
     put: (path, body) => request(path, {
         method: 'PUT',
         body: JSON.stringify(body)
     }),
-
-    // DELETE request: api.delete('/users/5')
     delete: (path) => request(path, { method: 'DELETE' })
 };
